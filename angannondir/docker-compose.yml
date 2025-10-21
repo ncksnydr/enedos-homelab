@@ -81,38 +81,6 @@ services:
       placement:
         constraints: [node.labels.angannondir == true]
 
-  shlink:
-    image: shlinkio/shlink:stable
-    container_name: angannondir-shlink
-    environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-      DB_DRIVER: postgres
-      DB_USER: ${ROOT_USERNAME:-changeMe}
-      DB_PASSWORD: ${ROOT_PASSWORD:-changeMe}
-      DB_HOST: postgres
-      DB_NAME: ${ANGANNONDIR_SHLINK_DATABASE:-shlink}
-      IS_HTTPS_ENABLED: "FALSE"
-      DEFAULT_SHORT_CODES_LENGTH: 6
-      REDIS_SERVERS: ${REDIS_URL:-redis://localhost:6379}
-      DEFAULT_DOMAIN: ${ANGANNONDIR_SHLINK_DOMAIN:-example.com}
-      GEOLITE_LICENSE_KEY: ${API_GEOLITE2:-changeMe}
-    networks:
-      - gulhir
-    ports:
-      - ${ANGANNONDIR_SHLINK_PORT:-8080}:8080
-    restart: always
-    deploy:
-      labels:
-        - homepage.instance.admin.description=URL shortener
-        - homepage.instance.admin.href=${ANGANNONDIR_SHLINK_URL:-http://localhost}
-        - homepage.instance.admin.icon=slink.svg
-        - homepage.instance.admin.group=Angannondír
-        - homepage.instance.admin.name=Slink
-      placement:
-        constraints: [node.hostname == raedorvudh]
-
 networks:
   gulhir:
     external: true

@@ -21,8 +21,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
       placement:
-        constraints: [node.labels.lochuil == true]
-  
+        constraints: [node.hostname == nadhrawlos]
+
   # Homepage Admin (https://gethomepage.dev/)
   homepage_admin:
     image: ghcr.io/gethomepage/homepage:latest
@@ -44,9 +44,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:
       placement:
-        constraints: [node.labels.lochuil == true]
-  
-
+        constraints: [node.hostname == nadhrawlos]
 
 networks:
   gulhir:

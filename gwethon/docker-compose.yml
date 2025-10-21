@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  readeck:
+    image: codeberg.org/readeck/readeck:latest
+    container_name: gwethon-readeck
+    environment:
+      PUID: ${PUID_NAS:-1000}
+      PGID: ${PGID_NAS:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      READECK_DATABASE_SOURCE: postgres://${ROOT_USERNAME:-changeMe}:${ROOT_PASSWORD:-changeMe}@${RAEDORVUDH_IP:-127.0.0.1}:${POSGRES_PORT:-5432}/${GWETHON_READECK_DATABASE_NAME:-readeck}
+      READECK_LOG_LEVEL: info
+    networks:
+      - gulhir
+    ports:
+      - ${GWETHON_READECK_PORT:-8000}:8000
+    restart: always
+    volumes:
+      - ${GWETHON_READECK_PATH:-./readeck}:/readeck
+    depends_on:
+      - postgres
+    deploy:
+      placement:
+        constraints: [node.hostname == budhdun]
+
+networks:
+  gulhir:
+    external: true
+
+volumes:
+  readeck-data:

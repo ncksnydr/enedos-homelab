@@ -12,8 +12,8 @@ services:
     cap_drop:
       - ALL
     environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
+      PUID: ${PUID_NAS:-1000}
+      PGID: ${PGID_NAS:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}/${REDIS_DB_MANYFOLD:-0}
       SECRET_KEY_BASE: ${TOLODBOTHUR_MANYFOLD_SECRET:-changeMe}
@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${TOLODBOTHUR_MANYFOLD_PATH:-./manyfold}:/config
-      - thinmbahad-models:/libraries
+      - gogiwnadh-models:/libraries
     depends_on:
       - redis
       - postgres
@@ -49,9 +49,9 @@ networks:
     external: true
 
 volumes:
-  thinmbahad-models:
+  gogiwnadh-models:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NFS_IP},${NFS_OPTIONS}
-      device: :${THINMBAHAD_PATH}/95.Storage/95.02.manyfold
+      device: :${GOGIWNADH_PATH}/78.Models

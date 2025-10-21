@@ -1,33 +1,5 @@
 version: "3.9"
 services:
-  # Min.io (https://github.com/minio/minio)
-  minio:
-    image: quay.io/minio/minio:RELEASE.2024-11-07T00-52-20Z.hotfix.2e4a5c31f
-    container_name: goistor-minio
-    command: server /data --console-address ":9001"
-    environment:
-      PUID: ${PUID_NAS:-1000}
-      PGID: ${PGID_NAS:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-      MINIO_ROOT_USER: ${GOISTOR_MINIO_USER:-changeMe}
-      MINIO_ROOT_PASSWORD: ${GOISTOR_MINIO_PASSWORD:-changeMe}
-    ports:
-      - ${GOISTOR_MINIO_PORT_API:-9000}:9000
-      - ${GOISTOR_MINIO_PORT_CONSOLE:-9001}:9001
-    volumes:
-      - thinmbahad_storage:/data
-    deploy:
-      labels:
-        - homepage.description=File storage server
-        - homepage.href=${GOISTOR_MINIO_URL:-http://localhost}
-        - homepage.icon=minio.svg
-        - homepage.instance.admin.group=Goistor
-        - homepage.instance.admin.name=Minio
-        - homepage.instance.public.group=Organization
-        - homepage.instance.public.name=Cloud Storage
-      placement:
-        constraints: [node.hostname == raedorvudh]
-  
   # MySQL/MariaDB (https://github.com/yobasystems/alpine-mariadb)
   mysql:
     image: yobasystems/alpine-mariadb:latest
@@ -192,14 +164,66 @@ services:
       placement:
         constraints: [node.hostname == raedorvudh]
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: goistor-ollama
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      OLLAMA_NUM_PARALLEL: 6
+      OLLAMA_MAX_LOADED_MODELS: 1
+      OLLAMA_NUM_THREADS: 6
+      GPU_MAX_ALLOC_PERCENT: 95
+    networks:
+      - gulhir
+    ports:
+      - ${GOISTOR_OLLAMA_PORT:-11434}:11434
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - ${GOISTOR_OLLAMA_PATH:-./ollama}/data:/root/.ollama
+      - ${GOISTOR_OLLAMA_PATH:-./ollama}/custom:/opt/ollama/custom
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=Ollama (API)
+        - homepage.instance.admin.description=Local LLM server
+        - homepage.instance.admin.icon=ollama.svg
+      placement:
+        constraints: [node.hostname == butharad]
+
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: goistor-ollama-webui
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      OLLAMA_BASE_URL: http://ollama:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - gulhir
+    ports:
+      - ${GOISTOR_OLLAMA_PORT_UI:-8080}:8080
+    restart: unless-stopped
+    volumes:
+      - ${GOISTOR_OLLAMA_PATH:-./ollama}/web:/app/backend/data
+    depends_on:
+      - ollama
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=Ollama (UI)
+        - homepage.instance.admin.description=Local LLM server
+        - homepage.instance.admin.icon=ollama.svg
+        - homepage.instance.admin.href=${GOISTOR_OLLAMA_URL:-http://localhost}
+      placement:
+        constraints: [node.hostname == butharad]
+
 networks:
   gulhir:
     external: true
-
-volumes:
-  thinmbahad_storage:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NFS_IP},${NFS_OPTIONS}
-      device: :${THINMBAHAD_PATH}/95.Storage
