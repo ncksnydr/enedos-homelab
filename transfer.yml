@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  alpine-worker:
+    image: alpine:latest
+    container_name: alpine-worker
+    # Keep container running
+    command: sh -c "while true; do sleep 3600; done"
+    volumes:
+      - ${BASE_PATH}/pimilor:/mnt/source:ro
+      - gadathli-data:/mnt/dest:rw
+    working_dir: /mnt
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == gadathli
+
+volumes:
+  gadathli-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/gadathli
