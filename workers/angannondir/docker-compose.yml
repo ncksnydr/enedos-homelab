@@ -57,6 +57,11 @@ services:
       AUTHENTIK_SECRET_KEY: file:////run/secrets/authentik_secret_key
     networks:
       - gulhir
+    secrets:
+      - authentik_database
+      - authentik_secret_key
+      - root_password
+      - root_username
     user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -152,6 +157,47 @@ services:
         constraints:
           - node.labels.pi4 == true
 
+  pihole:
+    image: pihole/pihole:latest
+    dns:
+      - 127.0.0.1
+      - 75.75.75.75
+      - 8.8.8.8
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      WEBPASSWORD_FILE: /run/secrets/pihole_password
+      FTLCONF_dns_listeningMode: "all"
+      FTLCONF_LOCAL_IPV4: "10.0.1.45"
+      PIHOLE_DNS_: "75.75.75.75;8.8.8.8"
+    network_mode: host
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 39238:80/tcp
+      - 39239:443/tcp
+    secrets:
+      # - api_pihole
+      - pihole_password
+    volumes:
+      - gogiwnadh-storage-pihole-data:/etc/pihole
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Angannondír
+        - homepage.instance.admin.name=Pihol
+        - homepage.instance.admin.description=DNS sinkhole and ad blocker
+        - homepage.instance.admin.href=${PIHOLE_URL:-http://localhost}
+        - homepage.instance.admin.icon=pihole.svg
+        # - homepage.instance.admin.widget.type=pihole
+        # - homepage.instance.admin.widget.url=${MANAGER_IP:-http://localhost}:81
+        # - homepage.instance.admin.widget.version=6
+        # - homepage.instance.admin.widget.key=${HOMEPAGE_FILE_PIHOLE_API_KEY}
+        # - homepage.instance.admin.widget.fields=["queries", "blocked", "blocked_percent", "gravity"]
+      placement:
+        constraints:
+          - node.role == manager
+
 networks:
   gulhir:
     external: true
@@ -159,6 +205,8 @@ networks:
 secrets:
   api_cloudflare:
     external: true
+  # api_pihole:
+  #   external: true
   authentik_database:
     external: true
   authentik_secret_key:
@@ -166,6 +214,8 @@ secrets:
   nginx_proxy_manager_database:
     external: true
   nginx_proxy_manager_password:
+    external: true
+  pihole_password:
     external: true
   root_email:
     external: true
@@ -205,3 +255,9 @@ volumes:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${GOGIWNADH_PATH_SERVICES}/nginx-proxy-manager/letsencrypt
+  gogiwnadh-storage-pihole-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/pihole
