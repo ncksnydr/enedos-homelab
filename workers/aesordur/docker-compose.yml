@@ -31,7 +31,7 @@ services:
       WEB_CONCURRENCY: 1
       BASE_URL: ${MEALIE_URL:-https://mealie.example.com}
       ALLOW_SIGNUP: "FALSE"
-      API_MEALIE: /run/secrets/api_mealie
+      HOMEPAGE_FILE_API_KEY: /run/secrets/api_mealie
     networks:
       - gulhir
     ports:
@@ -54,7 +54,7 @@ services:
         - homepage.instance.public.name=Cookbook
         - homepage.widget.type=mealie
         - homepage.widget.url=${MANAGER_IP:-http://localhost}:41937
-        - homepage.widget.key=${API_MEALIE:-changeMe}
+        - homepage.widget.key=${HOMEPAGE_FILE_API_KEY}
         - homepage.widget.fields=["recipes"]
       placement:
         constraints:
