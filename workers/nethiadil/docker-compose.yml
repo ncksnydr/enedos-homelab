@@ -1,0 +1,182 @@
+version: "3.8"
+
+services:
+  # Plex (https://docs.linuxserver.io/images/docker-plex)
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: nethiadil-plex
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      VERSION: docker
+      PLEX_CLAIM__FILE: /run/secrets/plex_claim_token
+      HOMEPAGE_FILE_PLEX_API_KEY: /run/secrets/plex_api
+    network_mode: host
+    ports:
+      - 32400:32400/tcp
+    secrets:
+      - plex_api
+      - plex_claim_token
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - plex-data:/config
+      - thinmbahad-media:/media
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Plex Media Server
+        - homepage.instance.public.group=Media
+        - homepage.instance.public.name=Nickflix
+        - homepage.description=Streaming media server
+        - homepage.icon=plex.svg
+        - homepage.href=${PLEX_URL:-http://localhost}
+        - homepage.widget.type=plex
+        - homepage.widget.url=${MANAGER_IP:-http://localhost}:32400
+        - homepage.widget.key=${HOMEPAGE_FILE_PLEX_API_KEY}
+        - homepage.widget.fields=["movies", "tv", "albums"]
+      placement:
+        constraints:
+          - node.labels.pi5 == true
+
+  # Tautilli (https://docs.linuxserver.io/images/docker-tautulli)
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: nethiadil-plex-stats
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      HOMEPAGE_FILE_PLEX_API_KEY: /run/secrets/tautulli_api
+    ports:
+      - 45162:8181
+    secrets:
+      - tautulli_api
+    volumes:
+      - tautulli-data:/config
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Tautilli
+        - homepage.instance.admin.description=Plex statistics
+        - homepage.instance.admin.icon=tautulli.svg
+        - homepage.instance.admin.href=${TAUTULLI_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=tautulli
+        - homepage.instance.admin.widget.url=${MANAGER_IP:-http://localhost}:45162
+        - homepage.instance.admin.widget.key=${HOMEPAGE_FILE_PLEX_API_KEY}
+        - homepage.instance.admin.widget.enableUser=true
+        - homepage.instance.admin.widget.showEpisodeNumbers=true
+        - homepage.instance.admin.widget.expandOneStreamToTwoRows=true
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # Plex Meta Manager (https://docs.linuxserver.io/images/docker-plex-meta-manager)
+  plex-meta-manager:
+    image: lscr.io/linuxserver/plex-meta-manager:latest
+    configs:
+      - source: plex-meta-manager-config
+        target: /config/config.yml
+      - source: plex-meta-manager-movies
+        target: /config/Movies.yml
+      - source: plex-meta-manager-tv
+        target: /config/TV.yml
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      PMM_TIME: 03:00
+    volumes:
+      - plex-meta-manager-data:/config
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Plex Meta Manager
+        - homepage.instance.admin.description=Plex library management and metadata agent
+        - homepage.instance.admin.icon=plex-meta-manager.svg
+        - homepage.instance.admin.href=${PLEX_META_MANAGER_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # Beets (https://beets.io/)
+  beets:
+    image: lscr.io/linuxserver/beets:latest
+    configs:
+      - source: beets-config
+        target: /config/config.yaml
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 31758:8337
+    volumes:
+      - beets-data:/config
+      - thinmbahad-music:/music
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Beets
+        - homepage.instance.admin.description=Music library management
+        - homepage.instance.admin.icon=sh-beets
+        - homepage.instance.admin.href=${BEETS_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+configs:
+  beets-config:
+    external: true
+  plex-meta-manager-config:
+    external: true
+  plex-meta-manager-movies:
+    external: true
+  plex-meta-manager-tv:
+    external: true
+
+secrets:
+  plex_api:
+    external: true
+  plex_claim_token:
+    external: true
+  tautulli_api:
+    external: true
+
+volumes:
+  beets-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/beets
+  plex-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/plex
+  plex-meta-manager-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/plex-meta-manager
+  tautulli-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/tautulli
+  thinmbahad-media:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}
+  thinmbahad-music:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/91.Audio/91.01.Music
