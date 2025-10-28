@@ -1,0 +1,128 @@
+# --------------------------------------------------------------------------
+#   Lochuil
+#   Warm Winds
+# --------------------------------------------------------------------------
+#   Services for directories and routing.
+# --------------------------------------------------------------------------
+services:
+  # Homepage (https://gethomepage.dev/)
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    configs:
+      - source: homepage-bookmarks
+        target: /app/config/bookmarks.yaml
+      - source: homepage-docker
+        target: /app/config/docker.yaml
+      - source: homepage-services
+        target: /app/config/services.yaml
+      - source: homepage-settings
+        target: /app/config/settings.yaml
+      - source: homepage-widgets
+        target: /app/config/widgets.yaml
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      HOMEPAGE_ALLOWED_HOSTS: "*"
+    networks:
+      - gulhir
+    ports:
+      - 6222:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - homepage-icons:/app/public/icons
+      - homepage-images:/app/public/images
+      - homepage-public:/app/config
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Homepage Admin (https://gethomepage.dev/)
+  homepage_admin:
+    image: ghcr.io/gethomepage/homepage:latest
+    configs:
+      - source: homepage-admin-bookmarks
+        target: /app/config/bookmarks.yaml
+      - source: homepage-admin-services
+        target: /app/config/services.yaml
+      - source: homepage-admin-settings
+        target: /app/config/settings.yaml
+      - source: homepage-admin-widgets
+        target: /app/config/widgets.yaml
+      - source: homepage-docker
+        target: /app/config/docker.yaml
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      HOMEPAGE_ALLOWED_HOSTS: "*"
+    networks:
+      - gulhir
+    ports:
+      - 6223:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - homepage-admin:/app/config
+      - homepage-icons:/app/public/icons
+      - homepage-images:/app/public/images
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+configs:
+  homepage-bookmarks:
+    external: true
+  homepage-docker:
+    external: true
+  homepage-services:
+    external: true
+  homepage-settings:
+    external: true
+  homepage-widgets:
+    external: true
+  homepage-admin-bookmarks:
+    external: true
+  homepage-admin-services:
+    external: true
+  homepage-admin-settings:
+    external: true
+  homepage-admin-widgets:
+    external: true
+
+networks:
+  gulhir:
+    external: true
+
+volumes:
+  homepage-admin:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/homepage/admin
+  homepage-icons:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/homepage/icons
+  homepage-images:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/homepage/images
+  homepage-public:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/homepage/public
+  thinmbahad-photos-public:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/94.Photos/94.01.Public
