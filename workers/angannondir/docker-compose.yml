@@ -109,6 +109,24 @@ services:
         constraints:
           - node.labels.pi4 == true
 
+  dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    environment:
+      CONTAINERS: 1
+      SERVICES: 1
+      TASKS: 1
+      POST: 0
+    networks:
+      - gulhir
+    ports:
+      - 127.0.0.1:2375:2375
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
   # NGINX Proxy Manager (https://github.com/NginxProxyManager/nginx-proxy-manager)
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
