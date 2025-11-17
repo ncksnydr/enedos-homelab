@@ -4,8 +4,8 @@
 # --------------------------------------------------------------------------
 
 # Load logging.
-source ./logging
-source ./docker
+source $ENEDOS_SCRIPTS_DIR/logging
+source $ENEDOS_SCRIPTS_DIR/docker
 
 function portainer_find_manager_node {
   docker service update portainer_agent --force

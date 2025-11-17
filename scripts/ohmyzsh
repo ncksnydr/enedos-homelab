@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------------
 
 # Load logging.
-source ./logging
+source $ENEDOS_SCRIPTS_DIR/logging
 
 function zsh_ohmyzsh_install {
   sudo apt install -y zsh git || error "Failed to install zsh or git!"

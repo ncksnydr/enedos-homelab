@@ -3,8 +3,9 @@
 #   Enedos ZSH extension
 # --------------------------------------------------------------------------
 
-export ENEDOS_ZSH_DIR="/opt/enedos"
-export ENEDOS_SCRIPTS_DIR="$ENEDOS_ZSH_DIR/scripts"
+# Define exports
+export ENEDOS_HELPERS_DIR="$HOME/enedos/helpers"
+export ENEDOS_SCRIPTS_DIR="$ENEDOS_HELPERS_DIR/scripts"
 
 # These need to be loaded first.
 source $ENEDOS_SCRIPTS_DIR/logging
