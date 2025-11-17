@@ -1,0 +1,107 @@
+# --------------------------------------------------------------------------
+#   Bavronalad
+#   Shephard of Light
+# --------------------------------------------------------------------------
+#   Services related to photo and video management.
+# --------------------------------------------------------------------------
+
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v2
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      DB_HOSTNAME: postgres
+      DB_PORT: 5432
+      DB_USERNAME_FILE: /run/secrets/root_username
+      DB_PASSWORD_FILE: /run/secrets/root_password
+      DB_DATABASE_NAME_FILE: /run/secrets/immich_docs_database_name
+      MACHINE_LEARNING_DEVICE: cpu
+      MACHINE_LEARNING_WORKERS: 2
+      MACHINE_LEARNING_WORKER_TIMEOUT: 300
+    networks:
+      - gulhir
+    ports:
+      - 15471:2283
+    secrets:
+      - root_username
+      - root_password
+      - immich_docs_database_name
+    volumes:
+      - gogiwnadh-assets-immich-docs:/data
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Bavronalad
+        - homepage.instance.admin.name=Immich (Docs)
+        - homepage.instance.admin.description=Immich server for document management
+        - homepage.instance.admin.icon=immich.svg
+        - homepage.instance.admin.href=${IMMICH_DOCS_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi5 == true
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v2
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      DB_HOSTNAME: postgres
+      DB_PORT: 5432
+      DB_USERNAME: /run/secrets/root_username
+      DB_PASSWORD: /run/secrets/root_password
+      DB_DATABASE_NAME_FILE: /run/secrets/immich_docs_database_name
+      MACHINE_LEARNING_DEVICE: cpu
+      MACHINE_LEARNING_WORKERS: 2
+      MACHINE_LEARNING_WORKER_TIMEOUT: 300
+    networks:
+      - gulhir
+    secrets:
+      - root_username
+      - root_password
+      - immich_docs_database_name
+    volumes:
+      - gogiwnadh-services-immich-cache:/cache
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Bavronalad
+        - homepage.instance.admin.name=Immich (ML)
+        - homepage.instance.admin.description=Immich machine learning
+        - homepage.instance.admin.icon=immich.svg
+      placement:
+        constraints:
+          - node.labels.pi5 == true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  root_username:
+    external: true
+  root_password:
+    external: true
+  immich_docs_database_name:
+    external: true
+
+volumes:
+  gogiwnadh-assets-immich-docs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_ASSETS}/73.Documents/73.01.Immich
+  gogiwnadh-services-immich-cache:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/immich/cache

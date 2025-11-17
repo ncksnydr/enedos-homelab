@@ -32,7 +32,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - homepage-icons:/app/public/icons
       - homepage-images:/app/public/images
-      - homepage-public:/app/config
     deploy:
       placement:
         constraints:
@@ -63,7 +62,6 @@ services:
       - 6223:3000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - homepage-admin:/app/config
       - homepage-icons:/app/public/icons
       - homepage-images:/app/public/images
     deploy:

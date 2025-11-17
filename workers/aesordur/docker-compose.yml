@@ -42,7 +42,7 @@ services:
       - root_password
       - root_username
     volumes:
-      - gogiwnadh-storage-mealie:/app/data
+      - ${BASE_PATH:-.}/aesordur/mealie:/app/data
     deploy:
       labels:
         - homepage.description=Recipies and meal planning

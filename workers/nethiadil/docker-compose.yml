@@ -1,6 +1,74 @@
 version: "3.8"
 
 services:
+  # Beets (https://beets.io/)
+  beets:
+    image: lscr.io/linuxserver/beets:latest
+    configs:
+      - source: beets-config
+        target: /config/config.yaml
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 31758:8337
+    volumes:
+      - beets-data:/config
+      - thinmbahad-music:/music
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Beets
+        - homepage.instance.admin.description=Music library management
+        - homepage.instance.admin.icon=sh-beets
+        - homepage.instance.admin.href=${BEETS_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # ErsatzTV (https://github.com/ErsatzTV/ErsatzTV)
+  ersatztv:
+    image: ghcr.io/ersatztv/ersatztv:latest
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/mpp_service:/dev/mpp_service
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8409"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - gulhir
+    ports:
+      - 26987:8409
+    tmpfs:
+      - /root/.local/share/etv-transcode:rw,size=2g
+    volumes:
+      - ${BASE_PATH:-.}/nethiadil/ersatztv:/root/.local/share/ersatztv
+      - thinmbahad-movies:/movies
+      - thinmbahad-tv:/tv
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == budganthui
+      resources:
+        reservations:
+          memory: 2G
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=ErsatzTV
+        - homepage.instance.admin.description=Custom TV channels
+        - homepage.instance.admin.icon=ersatztv
+        - homepage.instance.admin.href=http://${MANAGER_IP:-localhost}:26987
+
   # Plex (https://docs.linuxserver.io/images/docker-plex)
   plex:
     image: lscr.io/linuxserver/plex:latest
@@ -12,6 +80,10 @@ services:
       VERSION: docker
       PLEX_CLAIM__FILE: /run/secrets/plex_claim_token
       HOMEPAGE_FILE_PLEX_API_KEY: /run/secrets/plex_api
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/mpp_service:/dev/mpp_service
     network_mode: host
     ports:
       - 32400:32400/tcp
@@ -20,7 +92,7 @@ services:
       - plex_claim_token
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - plex-data:/config
+      - ${BASE_PATH:-.}/nethiadil/plex:/config
       - thinmbahad-media:/media
     deploy:
       labels:
@@ -37,15 +109,43 @@ services:
         - homepage.widget.fields=["movies", "tv", "albums"]
       placement:
         constraints:
-          - node.labels.pi5 == true
+          - node.hostname == budganthui
+
+    # Plex Meta Manager (https://docs.linuxserver.io/images/docker-plex-meta-manager)
+  plex-meta-manager:
+    image: lscr.io/linuxserver/plex-meta-manager:latest
+    configs:
+      - source: plex-meta-manager-config
+        target: /config/config.yml
+      - source: plex-meta-manager-movies
+        target: /config/Movies.yml
+      - source: plex-meta-manager-tv
+        target: /config/TV.yml
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      PMM_TIME: 03:00
+    volumes:
+      - plex-meta-manager-data:/config
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Plex Meta Manager
+        - homepage.instance.admin.description=Plex library management and metadata agent
+        - homepage.instance.admin.icon=plex-meta-manager.svg
+        - homepage.instance.admin.href=${PLEX_META_MANAGER_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
 
   # Tautilli (https://docs.linuxserver.io/images/docker-tautulli)
   tautulli:
     image: lscr.io/linuxserver/tautulli:latest
     container_name: nethiadil-plex-stats
     environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       HOMEPAGE_FILE_PLEX_API_KEY: /run/secrets/tautulli_api
     ports:
@@ -71,60 +171,6 @@ services:
         constraints:
           - node.labels.pi4 == true
 
-  # Plex Meta Manager (https://docs.linuxserver.io/images/docker-plex-meta-manager)
-  plex-meta-manager:
-    image: lscr.io/linuxserver/plex-meta-manager:latest
-    configs:
-      - source: plex-meta-manager-config
-        target: /config/config.yml
-      - source: plex-meta-manager-movies
-        target: /config/Movies.yml
-      - source: plex-meta-manager-tv
-        target: /config/TV.yml
-    environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-      PMM_TIME: 03:00
-    volumes:
-      - plex-meta-manager-data:/config
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Nethiadil
-        - homepage.instance.admin.name=Plex Meta Manager
-        - homepage.instance.admin.description=Plex library management and metadata agent
-        - homepage.instance.admin.icon=plex-meta-manager.svg
-        - homepage.instance.admin.href=${PLEX_META_MANAGER_URL:-http://localhost}
-      placement:
-        constraints:
-          - node.labels.pi4 == true
-
-  # Beets (https://beets.io/)
-  beets:
-    image: lscr.io/linuxserver/beets:latest
-    configs:
-      - source: beets-config
-        target: /config/config.yaml
-    environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-    ports:
-      - 31758:8337
-    volumes:
-      - beets-data:/config
-      - thinmbahad-music:/music
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Nethiadil
-        - homepage.instance.admin.name=Beets
-        - homepage.instance.admin.description=Music library management
-        - homepage.instance.admin.icon=sh-beets
-        - homepage.instance.admin.href=${BEETS_URL:-http://localhost}
-      placement:
-        constraints:
-          - node.labels.pi4 == true
-
 configs:
   beets-config:
     external: true
@@ -133,6 +179,10 @@ configs:
   plex-meta-manager-movies:
     external: true
   plex-meta-manager-tv:
+    external: true
+
+networks:
+  gulhir:
     external: true
 
 secrets:
@@ -180,3 +230,15 @@ volumes:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${THINMBAHAD_PATH}/91.Audio/91.01.Music
+  thinmbahad-tv:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/96.Video/96.05.TV
+  thinmbahad-movies:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/96.Video/96.04.Movies

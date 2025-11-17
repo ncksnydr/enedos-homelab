@@ -4,8 +4,6 @@
 # --------------------------------------------------------------------------
 #   Services related to access and authentication.
 # --------------------------------------------------------------------------
-
-version: "3.9"
 services:
   # Authentik (https://goauthentik.io/)
   authentik-server:
@@ -154,9 +152,10 @@ services:
       - root_email
       - root_password
       - root_username
+
     volumes:
-      - gogiwnadh-storage-nginx-proxy-manager-data:/data
-      - gogiwnadh-storage-nginx-proxy-manager-letsencrypt:/etc/letsencrypt
+      - ${BASE_PATH:-.}/nginx-proxy-manager/data:/data
+      - ${BASE_PATH:-.}/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
     depends_on:
       - mysql
     deploy:
@@ -173,14 +172,12 @@ services:
         - homepage.instance.admin.widget.fields=["enabled", "disabled", "total"]
       placement:
         constraints:
-          - node.labels.pi4 == true
+          - node.role == manager
 
   pihole:
     image: pihole/pihole:latest
-    dns:
-      - 127.0.0.1
-      - 75.75.75.75
-      - 8.8.8.8
+    cap_add:
+      - SYS_TIME
     environment:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
@@ -188,7 +185,8 @@ services:
       WEBPASSWORD_FILE: /run/secrets/pihole_password
       FTLCONF_dns_listeningMode: "all"
       FTLCONF_LOCAL_IPV4: "10.0.1.45"
-      PIHOLE_DNS_: "75.75.75.75;8.8.8.8"
+      PIHOLE_DNS_: "1.1.1.1"
+      HOMEPAGE_FILE_PIHOLE_API_KEY: /run/secrets/pihole_api
     network_mode: host
     ports:
       - 53:53/tcp
@@ -196,10 +194,10 @@ services:
       - 39238:80/tcp
       - 39239:443/tcp
     secrets:
-      # - api_pihole
+      - pihole_api
       - pihole_password
     volumes:
-      - gogiwnadh-storage-pihole-data:/etc/pihole
+      - ${BASE_PATH:-.}/pihole:/etc/pihole
     deploy:
       labels:
         - homepage.instance.admin.group=Angannondír
@@ -207,14 +205,14 @@ services:
         - homepage.instance.admin.description=DNS sinkhole and ad blocker
         - homepage.instance.admin.href=${PIHOLE_URL:-http://localhost}
         - homepage.instance.admin.icon=pihole.svg
-        # - homepage.instance.admin.widget.type=pihole
-        # - homepage.instance.admin.widget.url=${MANAGER_IP:-http://localhost}:81
-        # - homepage.instance.admin.widget.version=6
-        # - homepage.instance.admin.widget.key=${HOMEPAGE_FILE_PIHOLE_API_KEY}
-        # - homepage.instance.admin.widget.fields=["queries", "blocked", "blocked_percent", "gravity"]
+        - homepage.instance.admin.widget.type=pihole
+        - homepage.instance.admin.widget.url=${MANAGER_IP:-http://localhost}:81
+        - homepage.instance.admin.widget.version=6
+        - homepage.instance.admin.widget.key=${HOMEPAGE_FILE_PIHOLE_API_KEY}
+        - homepage.instance.admin.widget.fields=["queries", "blocked", "blocked_percent", "gravity"]
       placement:
         constraints:
-          - node.role == manager
+          - node.labels.honeypot == true
 
 networks:
   gulhir:
@@ -223,8 +221,6 @@ networks:
 secrets:
   api_cloudflare:
     external: true
-  # api_pihole:
-  #   external: true
   authentik_database:
     external: true
   authentik_secret_key:
@@ -232,6 +228,8 @@ secrets:
   nginx_proxy_manager_database:
     external: true
   nginx_proxy_manager_password:
+    external: true
+  pihole_api:
     external: true
   pihole_password:
     external: true
@@ -261,21 +259,3 @@ volumes:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${GOGIWNADH_PATH_SERVICES}/authentik/templates
-  gogiwnadh-storage-nginx-proxy-manager-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/nginx-proxy-manager/data
-  gogiwnadh-storage-nginx-proxy-manager-letsencrypt:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/nginx-proxy-manager/letsencrypt
-  gogiwnadh-storage-pihole-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/pihole

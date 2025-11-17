@@ -1,0 +1,78 @@
+# --------------------------------------------------------------------------
+#   Athradir
+#   The Ferryman
+# --------------------------------------------------------------------------
+#   Services for object storage.
+# --------------------------------------------------------------------------
+services:
+  minio-server:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_username
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_password
+    networks:
+      - gulhir
+    ports:
+      - 36768:9000
+      - 36769:9001
+    secrets:
+      - minio_password
+      - minio_username
+    volumes:
+      - ${BASE_PATH:-.}/minio:/root/.minio
+      - thinmbahad-storage:/data
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Glaermílui
+        - homepage.instance.admin.name=Minio (Server)
+        - homepage.instance.admin.description=Object storage server
+        - homepage.instance.admin.icon=minio.svg
+        - homepage.instance.admin.href=${MINIO_CONSOLE_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.hostname == raedorvudh
+
+  minio-client:
+    image: minio/mc:latest
+    entrypoint: ["tail", "-f", "/dev/null"]
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      MINIO_ACCESS_KEY_FILE: /run/secrets/minio_username
+      MINIO_SECRET_KEY_FILE: /run/secrets/minio_password
+    networks:
+      - gulhir
+    secrets:
+      - minio_password
+      - minio_username
+    stdin_open: true
+    tty: true
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Glaermílui
+        - homepage.instance.admin.name=Minio (Client)
+        - homepage.instance.admin.description=Minio CLI
+        - homepage.instance.admin.icon=minio.svg
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  minio_password:
+    external: true
+  minio_username:
+    external: true
+
+volumes:
+  thinmbahad-storage:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/95.Storage

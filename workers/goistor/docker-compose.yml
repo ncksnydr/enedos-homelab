@@ -16,19 +16,19 @@ services:
       TZ: ${TZ:-America/Los_Angeles}
       TIMEZONE: ${TZ:-America/Los_Angeles}
       BACKUP_JOB_CONCURRENCY: 1
-      DB01_BACKUP_BEGIN: 0300
+      DB01_BACKUP_BEGIN: 0 3 * * *
       DB01_HOST: mysql
       DB01_NAME: ALL
       DB01_PASSWORD_FILE: /run/secrets/root_password
       DB01_TYPE: mariadb
       DB01_USER_FILE: /run/secrets/root_username
-      DB02_BACKUP_BEGIN: 0400
+      DB02_BACKUP_BEGIN: 0 4 * * *
       DB02_HOST: postgres
       DB02_NAME: ALL
       DB02_PASSWORD_FILE: /run/secrets/root_password
       DB02_TYPE: postgres
       DB02_USER_FILE: /run/secrets/root_username
-      DEFAULT_BACKUP_BEGIN: 0300
+      DEFAULT_BACKUP_BEGIN: 0 3 * * *
       DEFAULT_BACKUP_INTERVAL: 1440
       DEFAULT_CHECKSUM: NONE
       DEFAULT_CLEANUP_TIME: 8640

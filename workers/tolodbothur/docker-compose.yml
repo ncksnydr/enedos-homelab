@@ -1,0 +1,66 @@
+version: "3.9"
+services:
+  # Manyfold (https://manyfold.app)
+  manyfold:
+    image: lscr.io/linuxserver/manyfold:latest
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    cap_drop:
+      - ALL
+    environment:
+      PUID: ${PUID_NAS:-1000}
+      PGID: ${PGID_NAS:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      FILE__DATABASE_URL: /run/secrets/manyfold_database_url
+      REDIS_URL: redis://redis:6379/${MANYFOLD_REDIS_DB:-0}
+      FILE__SECRET_KEY_BASE: /run/secrets/manyfold_secret_key
+    networks:
+      - gulhir
+    ports:
+      - 61812:3214
+    secrets:
+      - manyfold_database_url
+      - manyfold_secret_key
+    volumes:
+      - gogiwnadh-manyfold-data:/config
+      - gogiwnadh-models:/libraries
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Tolodbothur
+        - homepage.instance.admin.name=Manyfold
+        - homepage.instance.admin.description=3D model manager
+        - homepage.instance.admin.icon=sh-manyfold
+        - homepage.instance.admin.href=${MANYFOLD_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  manyfold_database_url:
+    external: true
+  manyfold_secret_key:
+    external: true
+
+volumes:
+  gogiwnadh-manyfold-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/manyfold
+  gogiwnadh-models:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_ASSETS}/78.Models

@@ -36,8 +36,8 @@ services:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: pimilor-lidarr
     environment:
-      PUID: ${PUID_NAS:-1000}
-      PGID: ${PGID_NAS:-1000}
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
       TZ: ${TZ}
       HOMEPAGE_FILE_LIDARR_API: /run/secrets/lidarr_api
     ports:
@@ -71,8 +71,8 @@ services:
     image: lscr.io/linuxserver/mylar3:latest
     container_name: pimilor-mylar3
     environment:
-      PUID: ${PUID_NAS:-1000}
-      PGID: ${PGID_NAS:-1000}
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       HOMEPAGE_FILE_MYLAR3_API: /run/secrets/mylar3_api
     ports:
@@ -143,8 +143,8 @@ services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     environment:
-      PUID: ${PUID_NAS:-1000}
-      PGID: ${PGID_NAS:-1000}
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       HOMEPAGE_FILE_PROWLARR_API: /run/secrets/prowlarr_api
     ports:
@@ -175,8 +175,8 @@ services:
     image: lscr.io/linuxserver/radarr:latest
     container_name: pimilor-radarr
     environment:
-      PUID: ${PUID_NAS:-1000}
-      PGID: ${PGID_NAS:-1000}
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       HOMEPAGE_FILE_RADARR_API: /run/secrets/radarr_api
     logging:
@@ -212,8 +212,8 @@ services:
   sonarr:
     image: lscr.io/linuxserver/sonarr
     environment:
-      PUID: ${PUID_NAS:-1000}
-      PGID: ${PGID_NAS:-1000}
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       HOMEPAGE_FILE_SONARR_API: /run/secrets/sonarr_api
     logging:
@@ -249,8 +249,8 @@ services:
   transmission:
     image: lscr.io/linuxserver/transmission:latest
     environment:
-      PUID: ${PUID_NAS:-1000}
-      PGID: ${PGID_NAS:-1000}
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       PEERPORT: 61377
       TRANSMISSION_WEB_HOME: /config/ui/transmission-web-control
