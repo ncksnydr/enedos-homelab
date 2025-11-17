@@ -1,0 +1,5 @@
+0 4 * * * /usr/bin/docker service update portainer_agent --force
+
+
+#   Title
+# ------------------------------------------------------------

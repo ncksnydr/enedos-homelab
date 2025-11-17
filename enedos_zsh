@@ -1,0 +1,15 @@
+#!/usr/bin/env zsh
+# --------------------------------------------------------------------------
+#   Enedos ZSH extension
+# --------------------------------------------------------------------------
+
+export ENEDOS_ZSH_DIR="/opt/enedos"
+export ENEDOS_SCRIPTS_DIR="$ENEDOS_ZSH_DIR/scripts"
+
+# These need to be loaded first.
+source $ENEDOS_SCRIPTS_DIR/logging
+source $ENEDOS_SCRIPTS_DIR/docker
+
+# Load other helpers.
+source $ENEDOS_SCRIPTS_DIR/ohmyzsh
+source $ENEDOS_SCRIPTS_DIR/portainer

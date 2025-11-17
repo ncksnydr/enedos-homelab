@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# --------------------------------------------------------------------------
+#   Scripts → Helpers → Portainer
+# --------------------------------------------------------------------------
+
+# Load logging.
+source ./logging
+source ./docker
+
+function portainer_find_manager_node {
+  docker service update portainer_agent --force
+}
+
+function portainer_install {
+  sudo docker pull portainer/portainer-ce:latest || error "Failed to pull latest Portainer docker image!"
+  sudo docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest || error "Failed to run Portainer docker image!"
+}
+
+function portainer_restart {
+  PORTAINER_PID=$(docker_get_pid portainer-ce)
+  sudo docker stop $PORTAINER_PID || error "Failed to stop portainer!"
+  sudo docker start $PORTAINER_PID || error "Failed to stop portainer!"
+}
+
+function portainer_update {
+  PORTAINER_PID=$(docker_get_container_pid portainer-ce)
+  PORTAINER_NAME=$(docker_get_container_name portainer-ce)
+  sudo docker stop $PORTAINER_PID || error "Failed to stop portainer!"
+  sudo docker rm $PORTAINER_PID || error "Failed to remove portainer container!"
+  sudo docker rmi $PORTAINER_NAME || error "Failed to remove/untag images from the container!"
+  sudo docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest || error "Failed to execute newer version of Portainer!"
+}
