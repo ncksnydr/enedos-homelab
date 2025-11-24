@@ -25,6 +25,7 @@ x-shared: &shared
     N8N_SECURE_COOKIE: "true"
     QUEUE_BULL_REDIS_HOST: redis
     QUEUE_HEALTH_CHECK_ACTIVE: "true"
+    GENERIC_TIMEZONE: ${TZ:-America/Los_Angeles}
   networks:
     - gulhir
   secrets:
