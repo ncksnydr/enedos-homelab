@@ -2,77 +2,90 @@
 #   Athradir
 #   The Ferryman
 # --------------------------------------------------------------------------
-#   Services for object storage.
+#   Services for N8N automation.
 # --------------------------------------------------------------------------
+
+x-shared: &shared
+  image: docker.n8n.io/n8nio/n8n:nightly
+  environment:
+    PUID: ${PUID:-1000}
+    PGID: ${PGID:-1000}
+    TZ: ${TZ:-America/Los_Angeles}
+    DB_POSTGRESDB_DATABASE_FILE: /run/secrets/n8n_database_name
+    DB_POSTGRESDB_HOST: postgres
+    DB_POSTGRESDB_PASSWORD_FILE: /run/secrets/root_password
+    DB_POSTGRESDB_PORT: 5432
+    DB_POSTGRESDB_USER_FILE: /run/secrets/root_username
+    DB_TYPE: postgresdb
+    EXECUTIONS_MODE: queue
+    N8N_AI_ASSISTANT_BASE_URL: ${OLLAMA_INTERNAL_URL:-http://ollama:11434}
+    N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+    N8N_REINSTALL_MISSING_PACKAGES: "true"
+    N8N_RUNNERS_ENABLED: "true"
+    N8N_SECURE_COOKIE: "true"
+    QUEUE_BULL_REDIS_HOST: redis
+    QUEUE_HEALTH_CHECK_ACTIVE: "true"
+  networks:
+    - gulhir
+  secrets:
+    - n8n_database_name
+    - root_password
+    - root_username
+  volumes:
+    - gogiwnadh-services-n8n:/home/node/.n8n
+  depends_on:
+    - postgres
+    - redis
+
 services:
-  minio-server:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-      MINIO_ROOT_USER_FILE: /run/secrets/minio_username
-      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_password
-    networks:
-      - gulhir
+  # N8N (https://n8n.io)
+  n8n:
+    <<: *shared
     ports:
-      - 36768:9000
-      - 36769:9001
-    secrets:
-      - minio_password
-      - minio_username
-    volumes:
-      - ${BASE_PATH:-.}/minio:/root/.minio
-      - thinmbahad-storage:/data
+      - 5678:5678
     deploy:
       labels:
-        - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Minio (Server)
-        - homepage.instance.admin.description=Object storage server
-        - homepage.instance.admin.icon=minio.svg
-        - homepage.instance.admin.href=${MINIO_CONSOLE_URL:-http://localhost}
+        - homepage.instance.admin.group=Athradir
+        - homepage.instance.admin.name=N8N (Manager)
+        - homepage.instance.admin.description=Task automation and workflow orchestration
+        - homepage.instance.admin.href=${N8N_URL:-https://localhost}
+        - homepage.instance.admin.icon=n8n.svg
       placement:
         constraints:
-          - node.hostname == raedorvudh
+          - node.labels.pi5 == true
 
-  minio-client:
-    image: minio/mc:latest
-    entrypoint: ["tail", "-f", "/dev/null"]
-    environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-      MINIO_ACCESS_KEY_FILE: /run/secrets/minio_username
-      MINIO_SECRET_KEY_FILE: /run/secrets/minio_password
-    networks:
-      - gulhir
-    secrets:
-      - minio_password
-      - minio_username
-    stdin_open: true
-    tty: true
+  n8n-worker:
+    <<: *shared
+    command: worker
+    depends_on:
+      - n8n
     deploy:
       labels:
-        - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Minio (Client)
-        - homepage.instance.admin.description=Minio CLI
-        - homepage.instance.admin.icon=minio.svg
+        - homepage.instance.admin.group=Athradir
+        - homepage.instance.admin.name=N8N (Worker)
+        - homepage.instance.admin.description=Task automation and workflow orchestration
+        - homepage.instance.admin.icon=n8n.svg
+      placement:
+        constraints:
+          - node.labels.pi5 == true
+          - node.labels.pi4 == true
 
 networks:
   gulhir:
     external: true
 
 secrets:
-  minio_password:
+  n8n_database_name:
     external: true
-  minio_username:
+  root_username:
+    external: true
+  root_password:
     external: true
 
 volumes:
-  thinmbahad-storage:
+  gogiwnadh-services-n8n:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${THINMBAHAD_PATH}/95.Storage
+      device: :${GOGIWNADH_PATH_SERVICES}/n8n
