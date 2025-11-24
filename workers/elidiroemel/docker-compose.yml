@@ -1,0 +1,71 @@
+# --------------------------------------------------------------------------
+#   Elidiroemel
+#   Mother's Helper
+# --------------------------------------------------------------------------
+#   Services for aiding the technologically challenged.
+# --------------------------------------------------------------------------
+
+services:
+  # BookStack (https://www.bookstackapp.com)
+  bookstack:
+    image: lscr.io/linuxserver/bookstack:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      APP_URL: ${BOOKSTACK_GOOSE_URL:-http://localhost}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      FILE__APP_KEY: /run/secrets/bookstack_goose_app_key
+      FILE__DB_DATABASE: /run/secrets/bookstack_goose_database_name
+      FILE__DB_PASSWORD: /run/secrets/root_password
+      FILE__DB_USERNAME: /run/secrets/root_username
+      QUEUE_CONNECTION: database
+    networks:
+      - gulhir
+    ports:
+      - 64814:80
+    secrets:
+      - bookstack_goose_app_key
+      - bookstack_goose_database_name
+      - root_password
+      - root_username
+    volumes:
+      - gogiwnadh-services-bookstack-goose:/config
+    depends_on:
+      - mysql
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Elidiroemel
+        - homepage.instance.admin.name=BookStack (Goose)
+        - homepage.instance.admin.description=Help center for the technologically challenged
+        - homepage.instance.icon=bookstack.svg
+        - homepage.instance.href=${BOOKSTACK_GOOSE_URL:-http://localhost}
+        - homepage.instance.public.group=Miscellaneous
+        - homepage.instance.public.name=Ask Goose
+        - homepage.instance.public.description=Help center for Mary
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  root_username:
+    external: true
+  root_password:
+    external: true
+  bookstack_goose_database_name:
+    external: true
+  bookstack_goose_app_key:
+    external: true
+
+volumes:
+  gogiwnadh-services-bookstack-goose:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/bookstack/goose
