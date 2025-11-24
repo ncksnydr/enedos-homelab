@@ -1,0 +1,148 @@
+# --------------------------------------------------------------------------
+#   Lavanoveren
+#   Party Animal
+# --------------------------------------------------------------------------
+#   Services for games and fun.
+# --------------------------------------------------------------------------
+
+services:
+  # Crafty (https://craftycontrol.com)
+  crafty:
+    image: registry.gitlab.com/crafty-controller/crafty-4:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 57844:8000
+      - 8123:8123
+      - 19132:19132/udp
+      - 25500-25600:25500-25600
+    volumes:
+      - gogiwnadh-services-crafty-backups:/crafty/backups
+      - gogiwnadh-services-crafty-logs:/crafty/logs
+      - ${BASE_M1_PATH:-.}/crafty/servers:/crafty/servers
+      - ${BASE_M1_PATH:-.}/crafty/config:/crafty/app/config
+      - ${BASE_M1_PATH:-.}/crafty/import:/crafty/import
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Lavanoveren
+        - homepage.instance.admin.name=Crafty Controller
+        - homepage.instance.public.group=Games
+        - homepage.instance.public.name=Minecraft
+        - homepage.description=Minecraft server manager
+        - homepage.icon=crafty-controller.svg
+        - homepage.href=${CRAFTY_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.m1 == true
+
+  # Foundry VTT (https://github.com/felddy/foundryvtt-docker)
+  foundry-vtt:
+    image: felddy/foundryvtt:latest
+    environment:
+      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      FOUNDRY_PASSWORD: /run/secrets/foundry_vtt_password
+      FOUNDRY_USERNAME: /run/secrets/foundry_vtt_username
+      FOUNDRY_ADMIN_KEY: /run/secrets/foundry_vtt_license_key
+    hostname: Lavanoveren
+    init: true
+    ports:
+      - 45656:30000
+    secrets:
+      - foundry_vtt_license_key
+      - foundry_vtt_password
+      - foundry_vtt_username
+    volumes:
+      - ${BASE_PATH:-.}/foundryvtt:/data
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Lavanoveren
+        - homepage.instance.admin.name=Foundry VTT
+        - homepage.instance.public.group=Games
+        - homepage.instance.public.name=Foundry Virtual Tabletop
+        - homepage.description=Virtual tabletop for role-playing games
+        - homepage.icon=si-foundryvirtualtabletop
+        - homepage.href=${FOUNDRYVTT_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.hostname == budganthui
+
+  # Gaseous (https://github.com/gaseous-project/gaseous-server)
+  gaseous:
+    image: gaseousgames/gaseousserver:latest
+    configs:
+      - source: gaseous-config
+        target: /root/.gaseous-server/config.json
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    networks:
+      - gulhir
+    ports:
+      - 2369:80
+    volumes:
+      - gogiwnadh-services-gaseous:/root/.gaseous-server
+      - thinmbahad-roms:/root/roms
+    depends_on:
+      - mysql
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Lavanoveren
+        - homepage.instance.admin.name=Gaseous
+        - homepage.instance.admin.description=Game library management
+        - homepage.instance.admin.icon=gaseous.png
+        - homepage.instance.admin.href=${GASEOUS_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi3 == true
+          - node.labels.pi4 == true
+
+configs:
+  gaseous-config:
+    external: true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  foundry_vtt_license_key:
+    external: true
+  foundry_vtt_password:
+    external: true
+  foundry_vtt_username:
+    external: true
+
+volumes:
+  #   Services
+  # ------------------------------------------------------------
+  gogiwnadh-services-crafty-backups:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/crafty/backups
+  gogiwnadh-services-crafty-logs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/crafty/logs
+  gogiwnadh-services-gaseous:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/gaseous
+  #   Thinmbahad
+  # ------------------------------------------------------------
+  thinmbahad-roms:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_IP},${NFS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/93.Games/93.01.ROMs
