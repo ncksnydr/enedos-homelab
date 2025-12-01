@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# --------------------------------------------------------------------------
+#   Find manager node
+#   Resets the Portainer agent to find the current manager node.
+#   @see crontab
+# --------------------------------------------------------------------------
+
+docker service update portainer_agent --force
+echo "Last ran at $(date)" >> /home/herupa/enedos/helpers/logs/crontab_find_manager_node.log
