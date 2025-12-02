@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# --------------------------------------------------------------------------
+#   Nightly refresh
+#   A collection of clean-up and maintenance tasks to be run nightly.
+#   @see crontab
+# --------------------------------------------------------------------------
+
+function _send_log {
+  echo "Last ran at $(date)" >> "/home/herupa/enedos/helpers/logs/crontab_$1.log"
+}
+
+
+#   Refresh manager node
+# ------------------------------------------------------------
+docker service update portainer_agent --force
+_send_log find_manager_node
+
+
+
+#   Prune stopped containers
+# ------------------------------------------------------------
+docker service update portainer_agent --force
+_send_log prune_stopped_containers
