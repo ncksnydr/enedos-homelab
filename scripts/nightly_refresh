@@ -6,6 +6,8 @@
 #   @see crontab
 # --------------------------------------------------------------------------
 
+NODE_IPS=( 46 47 48 49 50 51 52 89 )
+
 function _send_log {
   echo "Last ran at $(date)" >> "/home/herupa/enedos/helpers/logs/crontab_$1.log"
 }
@@ -17,8 +19,12 @@ docker service update portainer_agent --force
 _send_log find_manager_node
 
 
-
 #   Prune stopped containers
 # ------------------------------------------------------------
-docker service update portainer_agent --force
-_send_log prune_stopped_containers
+docker container prune -f
+_send_log prune_stopped_containers_manager
+
+for IP in $NODE_IPS; do
+    ssh herupa@10.0.1.$IP "docker container prune -f"
+    _send_log prune_stopped_containers_$IP
+done
