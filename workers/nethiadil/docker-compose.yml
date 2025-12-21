@@ -27,47 +27,47 @@ services:
         constraints:
           - node.labels.pi4 == true
 
-  # ErsatzTV (https://github.com/ErsatzTV/ErsatzTV)
-  ersatztv:
-    image: ghcr.io/ersatztv/ersatztv:latest
-    devices:
-      - /dev/dri:/dev/dri
-      - /dev/dma_heap:/dev/dma_heap
-      - /dev/mpp_service:/dev/mpp_service
-    environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8409"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - gulhir
-    ports:
-      - 26987:8409
-    tmpfs:
-      - /root/.local/share/etv-transcode:rw,size=2g
-    volumes:
-      - ${BASE_PATH:-.}/nethiadil/ersatztv:/root/.local/share/ersatztv
-      - thinmbahad-movies:/movies
-      - thinmbahad-tv:/tv
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.hostname == budganthui
-      resources:
-        reservations:
-          memory: 2G
-      labels:
-        - homepage.instance.admin.group=Nethiadil
-        - homepage.instance.admin.name=ErsatzTV
-        - homepage.instance.admin.description=Custom TV channels
-        - homepage.instance.admin.icon=ersatztv
-        - homepage.instance.admin.href=http://${MANAGER_IP:-localhost}:26987
+  # # ErsatzTV (https://github.com/ErsatzTV/ErsatzTV)
+  # ersatztv:
+  #   image: ghcr.io/ersatztv/ersatztv:latest
+  #   devices:
+  #     - /dev/dri:/dev/dri
+  #     - /dev/dma_heap:/dev/dma_heap
+  #     - /dev/mpp_service:/dev/mpp_service
+  #   environment:
+  #     PUID: ${PUID:-1000}
+  #     PGID: ${PGID:-1000}
+  #     TZ: ${TZ:-America/Los_Angeles}
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8409"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
+  #   networks:
+  #     - gulhir
+  #   ports:
+  #     - 26987:8409
+  #   tmpfs:
+  #     - /root/.local/share/etv-transcode:rw,size=2g
+  #   volumes:
+  #     - ${BASE_PATH:-.}/ersatztv:/root/.local/share/ersatztv
+  #     - thinmbahad-movies:/movies
+  #     - thinmbahad-tv:/tv
+  #   deploy:
+  #     replicas: 1
+  #     placement:
+  #       constraints:
+  #         - node.hostname == budganthui
+  #     resources:
+  #       reservations:
+  #         memory: 2G
+  #     labels:
+  #       - homepage.instance.admin.group=Nethiadil
+  #       - homepage.instance.admin.name=ErsatzTV
+  #       - homepage.instance.admin.description=Custom TV channels
+  #       - homepage.instance.admin.icon=ersatztv
+  #       - homepage.instance.admin.href=http://${MANAGER_IP:-localhost}:26987
 
   # Plex (https://docs.linuxserver.io/images/docker-plex)
   plex:
@@ -111,30 +111,24 @@ services:
         constraints:
           - node.hostname == budganthui
 
-    # Plex Meta Manager (https://docs.linuxserver.io/images/docker-plex-meta-manager)
-  plex-meta-manager:
-    image: lscr.io/linuxserver/plex-meta-manager:latest
-    configs:
-      - source: plex-meta-manager-config
-        target: /config/config.yml
-      - source: plex-meta-manager-movies
-        target: /config/Movies.yml
-      - source: plex-meta-manager-tv
-        target: /config/TV.yml
+  # Kometa (https://github.com/Kometa-Team/Kometa)
+  kometa:
+    image: lscr.io/linuxserver/kometa:latest
     environment:
-      PUID: ${NAS_PUID:-1000}
-      PGID: ${NAS_PGID:-1000}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
-      PMM_TIME: 03:00
+      KOMETA_RUN: "TRUE"
+      KOMETA_TIMES: "03:00"
+      KOMETA_CONFIG: /config/config.yml
     volumes:
-      - plex-meta-manager-data:/config
+      - kometa-data:/config
     deploy:
       labels:
         - homepage.instance.admin.group=Nethiadil
-        - homepage.instance.admin.name=Plex Meta Manager
+        - homepage.instance.admin.name=Kometa
         - homepage.instance.admin.description=Plex library management and metadata agent
-        - homepage.instance.admin.icon=plex-meta-manager.svg
-        - homepage.instance.admin.href=${PLEX_META_MANAGER_URL:-http://localhost}
+        - homepage.instance.admin.icon=kometa.svg
       placement:
         constraints:
           - node.labels.pi4 == true
@@ -153,7 +147,7 @@ services:
     secrets:
       - tautulli_api
     volumes:
-      - tautulli-data:/config
+      - ${BASE_PATH:-.}/tautulli:/config
     deploy:
       labels:
         - homepage.instance.admin.group=Nethiadil
@@ -169,16 +163,10 @@ services:
         - homepage.instance.admin.widget.expandOneStreamToTwoRows=true
       placement:
         constraints:
-          - node.labels.pi4 == true
+          - node.hostname == amonvedui
 
 configs:
   beets-config:
-    external: true
-  plex-meta-manager-config:
-    external: true
-  plex-meta-manager-movies:
-    external: true
-  plex-meta-manager-tv:
     external: true
 
 networks:
@@ -206,18 +194,12 @@ volumes:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${GOGIWNADH_PATH_SERVICES}/plex
-  plex-meta-manager-data:
+  kometa-data:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/plex-meta-manager
-  tautulli-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/tautulli
+      device: :${GOGIWNADH_PATH_SERVICES}/kometa
   thinmbahad-media:
     driver: local
     driver_opts:
