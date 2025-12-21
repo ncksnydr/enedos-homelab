@@ -1,4 +1,10 @@
-version: "3.9"
+# --------------------------------------------------------------------------
+#   Tolodbothur
+#   Master of the Eight-Legged Beast
+# --------------------------------------------------------------------------
+#   Services for 3D printing, model management, and more.
+# --------------------------------------------------------------------------
+
 services:
   # Manyfold (https://manyfold.app)
   manyfold:
@@ -25,8 +31,8 @@ services:
       - manyfold_database_url
       - manyfold_secret_key
     volumes:
-      - gogiwnadh-manyfold-data:/config
-      - gogiwnadh-models:/libraries
+      - gogiwnadh-services-manyfold:/config
+      - gogiwnadh-assets-models:/libraries
     depends_on:
       - redis
       - postgres
@@ -52,13 +58,13 @@ secrets:
     external: true
 
 volumes:
-  gogiwnadh-manyfold-data:
+  gogiwnadh-services-manyfold:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${GOGIWNADH_PATH_SERVICES}/manyfold
-  gogiwnadh-models:
+  gogiwnadh-assets-models:
     driver: local
     driver_opts:
       type: nfs
