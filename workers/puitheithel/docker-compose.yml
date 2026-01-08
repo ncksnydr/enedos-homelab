@@ -1,0 +1,77 @@
+# --------------------------------------------------------------------------
+#   Puitheithel
+#   Pleassure Spring
+# --------------------------------------------------------------------------
+#   Services for...stuff.
+# --------------------------------------------------------------------------
+
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v2
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      DB_DATABASE_NAME_FILE: /run/secrets/immich_spice_database_name
+      DB_HOSTNAME: postgres
+      DB_PASSWORD_FILE: /run/secrets/root_password
+      DB_PORT: 5432
+      DB_USERNAME_FILE: /run/secrets/root_username
+      MACHINE_LEARNING_ANN_FP16_TURBO: "TRUE"
+      MACHINE_LEARNING_ANN: "TRUE"
+      MACHINE_LEARNING_WORKER_TIMEOUT: 300
+      MACHINE_LEARNING_WORKERS: 2
+      REDIS_DBINDEX: ${IMMICH_SPICE_REDIS_DB:-2}
+      REDIS_HOSTNAME: redis
+      REDIS_PORT: 6379
+    networks:
+      - gulhir
+    ports:
+      - 64305:2283
+    secrets:
+      - root_username
+      - root_password
+      - immich_spice_database_name
+    volumes:
+      - gogiwnadh-services-immich-spice-data:/data
+      - thinmbahad-spice-gallery:/mnt/gallery
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Puitheithel
+        - homepage.instance.admin.name=Immich (Stash)
+        - homepage.instance.admin.description=Photo and video library
+        - homepage.instance.admin.icon=immich.svg
+        - homepage.instance.admin.href=${IMMICH_SPICE_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi5 == true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  root_username:
+    external: true
+  root_password:
+    external: true
+  immich_spice_database_name:
+    external: true
+
+volumes:
+  gogiwnadh-services-immich-spice-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/immich/spice
+  thinmbahad-spice-gallery:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/.900.Spice/gallery
