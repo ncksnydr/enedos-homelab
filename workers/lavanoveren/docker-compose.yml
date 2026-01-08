@@ -40,6 +40,9 @@ services:
   # Foundry VTT (https://github.com/felddy/foundryvtt-docker)
   foundry-vtt:
     image: felddy/foundryvtt:latest
+    configs:
+      - source: foundry-vtt-config
+        target: config.json
     environment:
       PGID: ${PGID:-1000}
       PUID: ${PUID:-1000}
@@ -99,9 +102,10 @@ services:
       placement:
         constraints:
           - node.labels.pi3 == true
-          - node.labels.pi4 == true
 
 configs:
+  foundry-vtt-config:
+    external: true
   gaseous-config:
     external: true
 
@@ -144,5 +148,5 @@ volumes:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=${NFS_IP},${NFS_OPTIONS}
+      o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${THINMBAHAD_PATH}/93.Games/93.01.ROMs
