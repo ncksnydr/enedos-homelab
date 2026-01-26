@@ -6,6 +6,29 @@
 # --------------------------------------------------------------------------
 
 services:
+  # Flaresolverr (https://github.com/FlareSolverr/FlareSolverr)
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      LOG_HTML: "FALSE"
+      LOG_LEVEL: info
+      CAPTCHA_SOLVER: none
+    ports:
+      - 34812:8191
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Flaresolverr
+        - homepage.instance.admin.description=CloudFlare proxy
+        - homepage.instance.admin.icon=flaresolverr.png
+        - homepage.instance.admin.href=${FLARESOLVERR_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
   # Huntarr (https://awesome-docker-compose.com/apps/arr/huntarr)
   huntarr:
     image: huntarr/huntarr:latest
