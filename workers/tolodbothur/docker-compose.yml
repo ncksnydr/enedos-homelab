@@ -21,7 +21,7 @@ services:
       PGID: ${PGID_NAS:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       FILE__DATABASE_URL: /run/secrets/manyfold_database_url
-      REDIS_URL: redis://redis:6379/${MANYFOLD_REDIS_DB:-0}
+      REDIS_URL: redis://redis-manyfold:6379
       FILE__SECRET_KEY_BASE: /run/secrets/manyfold_secret_key
     networks:
       - gulhir
@@ -34,7 +34,7 @@ services:
       - gogiwnadh-services-manyfold:/config
       - gogiwnadh-assets-models:/libraries
     depends_on:
-      - redis
+      - redis-manyfold
       - postgres
     deploy:
       labels:
@@ -46,6 +46,32 @@ services:
       placement:
         constraints:
           - node.labels.pi4 == true
+
+  # Redis (https://github.com/docker-library/redis)
+  redis-manyfold:
+    image: redis:8.0-alpine
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - 61813:6379
+    volumes:
+      - ${BASE_PATH:-.}/redis/manyfold:/data
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=Redis
+        - homepage.instance.admin.description=Redis memory cache
+        - homepage.instance.admin.icon=redis.svg
+      placement:
+        constraints:
+          - node.hostname == raedorvudh
 
 networks:
   gulhir:
