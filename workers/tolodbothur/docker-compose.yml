@@ -21,7 +21,7 @@ services:
       PGID: ${PGID_NAS:-1000}
       TZ: ${TZ:-America/Los_Angeles}
       FILE__DATABASE_URL: /run/secrets/manyfold_database_url
-      REDIS_URL: redis://redis-manyfold:6379
+      REDIS_URL: redis://10.0.1.45:61813
       FILE__SECRET_KEY_BASE: /run/secrets/manyfold_secret_key
     networks:
       - gulhir
@@ -45,7 +45,7 @@ services:
         - homepage.instance.admin.href=${MANYFOLD_URL:-http://localhost}
       placement:
         constraints:
-          - node.labels.pi4 == true
+          - node.labels.pi5 == true
 
   # Redis (https://github.com/docker-library/redis)
   redis-manyfold:
