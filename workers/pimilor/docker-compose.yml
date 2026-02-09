@@ -250,6 +250,31 @@ services:
         constraints:
           - node.labels.vpn == true
 
+  # Seasonarr (https://github.com/d3v1l1989/seasonarr)
+  seasonarr:
+    image: ghcr.io/d3v1l1989/seasonarr:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 32814:8000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${BASE_PATH:-.}/seasonarr:/app/data
+    depends_on:
+      - sonarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Seasonarr
+        - homepage.instance.admin.description=Season pack helper for Sonarr
+        - homepage.instance.admin.icon=seasonarr.svg
+        - homepage.instance.admin.href=${SEASONARR_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
   # Sonarr (https://docs.linuxserver.io/images/docker-sonarr)
   sonarr:
     image: lscr.io/linuxserver/sonarr
@@ -289,7 +314,7 @@ services:
 
   # Transmission (https://docs.linuxserver.io/images/docker-transmission)
   transmission:
-    image: lscr.io/linuxserver/transmission:latest
+    image: lscr.io/linuxserver/transmission:4.0.6-r6-ls326
     environment:
       PUID: ${NAS_PUID:-1000}
       PGID: ${NAS_PGID:-1000}
