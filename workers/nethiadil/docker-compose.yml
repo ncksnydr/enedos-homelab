@@ -1,0 +1,226 @@
+version: "3.8"
+
+services:
+  # Beets (https://beets.io/)
+  beets:
+    image: lscr.io/linuxserver/beets:latest
+    configs:
+      - source: beets-config
+        target: /config/config.yaml
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 31758:8337
+    volumes:
+      - beets-data:/config
+      - thinmbahad-music:/music
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Beets
+        - homepage.instance.admin.description=Music library management
+        - homepage.instance.admin.icon=sh-beets
+        - homepage.instance.admin.href=${BEETS_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # # ErsatzTV (https://github.com/ErsatzTV/ErsatzTV)
+  # ersatztv:
+  #   image: ghcr.io/ersatztv/ersatztv:latest
+  #   devices:
+  #     - /dev/dri:/dev/dri
+  #     - /dev/dma_heap:/dev/dma_heap
+  #     - /dev/mpp_service:/dev/mpp_service
+  #   environment:
+  #     PUID: ${PUID:-1000}
+  #     PGID: ${PGID:-1000}
+  #     TZ: ${TZ:-America/Los_Angeles}
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8409"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 60s
+  #   networks:
+  #     - gulhir
+  #   ports:
+  #     - 26987:8409
+  #   tmpfs:
+  #     - /root/.local/share/etv-transcode:rw,size=2g
+  #   volumes:
+  #     - ${BASE_PATH:-.}/ersatztv:/root/.local/share/ersatztv
+  #     - thinmbahad-movies:/movies
+  #     - thinmbahad-tv:/tv
+  #   deploy:
+  #     replicas: 1
+  #     placement:
+  #       constraints:
+  #         - node.hostname == budganthui
+  #     resources:
+  #       reservations:
+  #         memory: 2G
+  #     labels:
+  #       - homepage.instance.admin.group=Nethiadil
+  #       - homepage.instance.admin.name=ErsatzTV
+  #       - homepage.instance.admin.description=Custom TV channels
+  #       - homepage.instance.admin.icon=ersatztv
+  #       - homepage.instance.admin.href=http://${MANAGER_IP:-localhost}:26987
+
+  # Plex (https://docs.linuxserver.io/images/docker-plex)
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: nethiadil-plex
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      VERSION: docker
+      PLEX_CLAIM__FILE: /run/secrets/plex_claim_token
+      HOMEPAGE_FILE_PLEX_API_KEY: /run/secrets/plex_api
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/mpp_service:/dev/mpp_service
+    network_mode: host
+    ports:
+      - 32400:32400/tcp
+    secrets:
+      - plex_api
+      - plex_claim_token
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${BASE_PATH:-.}/nethiadil/plex:/config
+      - thinmbahad-media:/media
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Plex Media Server
+        - homepage.instance.public.group=Media
+        - homepage.instance.public.name=Nickflix
+        - homepage.description=Streaming media server
+        - homepage.icon=plex.svg
+        - homepage.href=${PLEX_URL:-http://localhost}
+        - homepage.widget.type=plex
+        - homepage.widget.url=${MANAGER_IP:-http://localhost}:32400
+        - homepage.widget.key=${HOMEPAGE_FILE_PLEX_API_KEY}
+        - homepage.widget.fields=["movies", "tv", "albums"]
+      placement:
+        constraints:
+          - node.hostname == budganthui
+
+  # Kometa (https://github.com/Kometa-Team/Kometa)
+  kometa:
+    image: lscr.io/linuxserver/kometa:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      KOMETA_RUN: "TRUE"
+      KOMETA_TIMES: "03:00"
+      KOMETA_CONFIG: /config/config.yml
+    volumes:
+      - kometa-data:/config
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Kometa
+        - homepage.instance.admin.description=Plex library management and metadata agent
+        - homepage.instance.admin.icon=kometa.svg
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # Tautilli (https://docs.linuxserver.io/images/docker-tautulli)
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: nethiadil-plex-stats
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      HOMEPAGE_FILE_PLEX_API_KEY: /run/secrets/tautulli_api
+    ports:
+      - 45162:8181
+    secrets:
+      - tautulli_api
+    volumes:
+      - ${BASE_PATH:-.}/tautulli:/config
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Nethiadil
+        - homepage.instance.admin.name=Tautilli
+        - homepage.instance.admin.description=Plex statistics
+        - homepage.instance.admin.icon=tautulli.svg
+        - homepage.instance.admin.href=${TAUTULLI_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=tautulli
+        - homepage.instance.admin.widget.url=${MANAGER_IP:-http://localhost}:45162
+        - homepage.instance.admin.widget.key=${HOMEPAGE_FILE_PLEX_API_KEY}
+        - homepage.instance.admin.widget.enableUser=true
+        - homepage.instance.admin.widget.showEpisodeNumbers=true
+        - homepage.instance.admin.widget.expandOneStreamToTwoRows=true
+      placement:
+        constraints:
+          - node.hostname == amonvedui
+
+configs:
+  beets-config:
+    external: true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  plex_api:
+    external: true
+  plex_claim_token:
+    external: true
+  tautulli_api:
+    external: true
+
+volumes:
+  beets-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/beets
+  plex-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/plex
+  kometa-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/kometa
+  thinmbahad-media:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}
+  thinmbahad-music:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/91.Audio/91.01.Music
+  thinmbahad-tv:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/96.Video/96.05.TV
+  thinmbahad-movies:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/96.Video/96.04.Movies

@@ -1,0 +1,75 @@
+# --------------------------------------------------------------------------
+#   Aesordur
+#   Master Chef
+# --------------------------------------------------------------------------
+#   Services related to meal planning, recipes, and cooking.
+# --------------------------------------------------------------------------
+
+version: "3.9"
+services:
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      RECIPE_PUBLIC: "TRUE"
+      RECIPE_SHOW_NUTRITION: "TRUE"
+      RECIPE_SHOW_ASSETS: "TRUE"
+      RECIPE_LANDSCAPE_VIEW: "TRUE"
+      RECIPE_DISABLE_COMMENTS: "FALSE"
+      RECIPE_DISABLE_AMOUNT: "FALSE"
+      WORKERS_PER_CORE: 3
+      DB_ENGINE: postgres
+      POSTGRES_DB_FILE: /run/secrets/mealie_database
+      POSTGRES_PASSWORD_FILE: /run/secrets/root_password
+      POSTGRES_PORT: 5432
+      POSTGRES_SERVER: postgres
+      POSTGRES_USER_FILE: /run/secrets/root_username
+      TOKEN_TIME: 4383
+      MAX_WORKERS: 1
+      WEB_CONCURRENCY: 1
+      BASE_URL: ${MEALIE_URL:-https://mealie.example.com}
+      ALLOW_SIGNUP: "FALSE"
+      HOMEPAGE_FILE_API_KEY: /run/secrets/api_mealie
+    networks:
+      - gulhir
+    ports:
+      - 41937:9000
+    secrets:
+      - api_mealie
+      - mealie_database
+      - root_password
+      - root_username
+    volumes:
+      - ${BASE_PATH:-.}/mealie:/app/data
+    deploy:
+      labels:
+        - homepage.description=Recipies and meal planning
+        - homepage.href=${MEALIE_URL:-https://localhost}
+        - homepage.icon=mealie.svg
+        - homepage.instance.admin.group=Aesordúr
+        - homepage.instance.admin.name=Mealie
+        - homepage.instance.public.group=Xanadu
+        - homepage.instance.public.name=Cookbook
+        - homepage.widget.type=mealie
+        - homepage.widget.url=${MANAGER_IP:-http://localhost}:41937
+        - homepage.widget.key=${HOMEPAGE_FILE_API_KEY}
+        - homepage.widget.fields=["recipes"]
+      placement:
+        constraints:
+          - node.hostname == butharad
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  api_mealie:
+    external: true
+  mealie_database:
+    external: true
+  root_password:
+    external: true
+  root_username:
+    external: true

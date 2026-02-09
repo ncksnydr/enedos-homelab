@@ -1,0 +1,450 @@
+# --------------------------------------------------------------------------
+#   Pimilor
+#   Little Thief
+# --------------------------------------------------------------------------
+#   Services for sailing the high seas of media management.
+# --------------------------------------------------------------------------
+
+services:
+  # Flaresolverr (https://github.com/FlareSolverr/FlareSolverr)
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      LOG_HTML: "FALSE"
+      LOG_LEVEL: info
+      CAPTCHA_SOLVER: none
+    ports:
+      - 34812:8191
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Flaresolverr
+        - homepage.instance.admin.description=CloudFlare proxy
+        - homepage.instance.admin.icon=flaresolverr.png
+        - homepage.instance.admin.href=${FLARESOLVERR_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Huntarr (https://awesome-docker-compose.com/apps/arr/huntarr)
+  huntarr:
+    image: huntarr/huntarr:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 32813:9705
+    volumes:
+      - ${BASE_PATH:-.}/huntarr:/config
+    depends_on:
+      - transmission
+      - prowlarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Huntarr
+        - homepage.instance.admin.description=Missing media manager
+        - homepage.instance.admin.icon=huntarr.png
+        - homepage.instance.admin.href=${HUNTARR_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Lidarr (https://github.com/linuxserver/docker-lidarr)
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ}
+      LIDARR_API: filepath:/run/secrets/lidarr_api
+    ports:
+      - 34802:8686
+    secrets:
+      - lidarr_api
+    volumes:
+      - ${BASE_PATH:-.}/lidarr:/config
+      - thinmbahad-music:/music
+      - cofbilion:/downloads
+    depends_on:
+      - transmission
+      - prowlarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Lidarr
+        - homepage.instance.admin.description=Book collection manager
+        - homepage.instance.admin.icon=lidarr.svg
+        - homepage.instance.admin.href=${LIDARR_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=lidarr
+        - homepage.instance.admin.widget.url=http://10.0.1.45:34802
+        - homepage.instance.admin.widget.key=${LIDARR_API}
+        - homepage.instance.admin.widget.fields=["wanted", "queued", "artists"]
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Overseerr (https://docs.linuxserver.io/images/docker-overseerr)
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      LOG_LEVEL: debug
+      OVERSEERR_API: filepath:/run/secrets/overseerr_api
+    logging:
+      options:
+        max-size: 10m
+    ports:
+      - 46392:5055
+    secrets:
+      - overseerr_api
+    volumes:
+      - ${BASE_PATH:-.}/overseerr:/config
+    depends_on:
+      - transmission
+      - sonarr
+      - radarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Overseerr
+        - homepage.instance.admin.description=Media request management
+        - homepage.instance.public.group=Media
+        - homepage.instance.public.description=Request TV shows and movies
+        - homepage.instance.public.name=Plex Requests
+        - homepage.icon=overseerr.svg
+        - homepage.href=${OVERSEERR_URL:-http://localhost}
+        - homepage.widget.type=overseerr
+        - homepage.widget.url=http://10.0.1.45:46392
+        - homepage.widget.key=${OVERSEERR_API}
+        - homepage.widget.fields=["approved", "available", "processing"]
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Prowlarr (https://github.com/linuxserver/docker-prowlarr)
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      PROWLARR_API: filepath:/run/secrets/prowlarr_api
+    ports:
+      - 34803:9696
+    secrets:
+      - prowlarr_api
+    volumes:
+      - ${BASE_PATH:-.}/prowlarr:/config
+    depends_on:
+      - transmission
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Prowlarr
+        - homepage.instance.admin.description=Torrent indexer manager
+        - homepage.instance.admin.icon=prowlarr.svg
+        - homepage.instance.admin.href=${PROWLARR_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=prowlarr
+        - homepage.instance.admin.widget.url=http://10.0.1.45:34803
+        - homepage.instance.admin.widget.key=${PROWLARR_API}
+        - homepage.instance.admin.widget.fields=["numberOfGrabs", "numberOfQueries", "numberOfFailGrabs", "numberOfFailQueries"]
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Radarr (https://docs.linuxserver.io/images/docker-radarr)
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: pimilor-radarr
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      RADARR_API: filepath:/run/secrets/radarr_api
+    logging:
+      options:
+        max-size: 10m
+    ports:
+      - 34800:7878
+    secrets:
+      - radarr_api
+    volumes:
+      - ${BASE_PATH:-.}/radarr:/config
+      - thinmbahad-movies:/movies
+      - cofbilion:/downloads
+    depends_on:
+      - transmission
+      - prowlarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Radarr
+        - homepage.instance.admin.description=Movie collection manager
+        - homepage.instance.admin.icon=radarr.svg
+        - homepage.instance.admin.href=${RADARR_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=radarr
+        - homepage.instance.admin.widget.url=http://10.0.1.45:34800
+        - homepage.instance.admin.widget.key=${RADARR_API}
+        - homepage.instance.admin.widget.fields=["wanted", "queued", "series"]
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Readarr (https://github.com/pennydreadful/bookshelf)
+  readarr-audiobooks:
+    image: ghcr.io/pennydreadful/bookshelf:hardcover
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 34809:8787
+    volumes:
+      - ${BASE_PATH:-.}/readarr/audiobooks/config:/config
+      - thinmbahad-audiobooks:/audiobooks
+      - cofbilion:/downloads
+    depends_on:
+      - transmission
+      - prowlarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Readarr (Audiobooks)
+        - homepage.instance.admin.description=Audiobooks collection manager
+        - homepage.instance.admin.icon=readarr.svg
+        - homepage.instance.admin.href=${READARR_AUDIOBOOKS_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  readarr-ebooks:
+    image: ghcr.io/pennydreadful/bookshelf:hardcover
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 34808:8787
+    volumes:
+      - ${BASE_PATH:-.}/readarr/ebooks/config:/config
+      - thinmbahad-ebooks:/books
+      - cofbilion:/downloads
+    depends_on:
+      - transmission
+      - prowlarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Readarr (eBooks)
+        - homepage.instance.admin.description=eBook collection manager
+        - homepage.instance.admin.icon=readarr.svg
+        - homepage.instance.admin.href=${READARR_EBOOKS_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Seasonarr (https://github.com/d3v1l1989/seasonarr)
+  seasonarr:
+    image: ghcr.io/d3v1l1989/seasonarr:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    ports:
+      - 32814:8000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${BASE_PATH:-.}/seasonarr:/app/data
+    depends_on:
+      - sonarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Seasonarr
+        - homepage.instance.admin.description=Season pack helper for Sonarr
+        - homepage.instance.admin.icon=seasonarr.svg
+        - homepage.instance.admin.href=${SEASONARR_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Sonarr (https://docs.linuxserver.io/images/docker-sonarr)
+  sonarr:
+    image: lscr.io/linuxserver/sonarr
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      SONARR_API: filepath:/run/secrets/sonarr_api
+    logging:
+      options:
+        max-size: 10m
+    ports:
+      - 34799:8989
+    secrets:
+      - sonarr_api
+    volumes:
+      - ${BASE_PATH:-.}/sonarr:/config
+      - thinmbahad-tv:/tv
+      - cofbilion:/downloads
+    depends_on:
+      - transmission
+      - prowlarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Sonarr
+        - homepage.instance.admin.description=TV show collection manager
+        - homepage.instance.admin.icon=sonarr.svg
+        - homepage.instance.admin.href=${SONARR_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=sonarr
+        - homepage.instance.admin.widget.url=http://10.0.1.45:34799
+        - homepage.instance.admin.widget.key=${SONARR_API}
+        - homepage.instance.admin.widget.fields=["wanted", "queued", "series"]
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Transmission (https://docs.linuxserver.io/images/docker-transmission)
+  transmission:
+    image: lscr.io/linuxserver/transmission:4.0.6-r6-ls326
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      PEERPORT: 61377
+      TRANSMISSION_WEB_HOME: /config/ui/transmission-web-control
+    logging:
+      options:
+        max-size: 10m
+    ports:
+      - 61378:9091
+      - 61377:51413/tcp
+      - 61378:51413/udp
+    volumes:
+      - ${BASE_PATH:-.}/transmission:/config
+      - cofbilion:/downloads
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Transmission
+        - homepage.instance.admin.description=BT downloader
+        - homepage.instance.admin.icon=transmission.svg
+        - homepage.instance.admin.href=${TRANSMISSION_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=transmission
+        - homepage.instance.admin.widget.url=http://10.0.1.45:61378
+        - homepage.instance.admin.widget.rpcUrl=/transmission/
+        - homepage.instance.admin.widget.fields=["leech", "download", "seed", "upload"]
+      placement:
+        constraints:
+          - node.labels.vpn == true
+      resources:
+        limits:
+          cpus: "8.00"
+          memory: 15G
+        reservations:
+          cpus: "6.00"
+          memory: 9G
+
+  # Unpackerr (https://github.com/Unpackerr/unpackerr)
+  unpackerr:
+    image: golift/unpackerr
+    configs:
+      - source: unpackerr-config
+        target: /config/unpackerr.conf
+    volumes:
+      - cofbilion:/downloads
+    user: ${PUID}:${PGID}
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Unpackerr
+        - homepage.instance.admin.description=Torrent unarchiver
+        - homepage.instance.admin.icon=unpackerr.svg
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+configs:
+  unpackerr-config:
+    external: true
+
+secrets:
+  lidarr_api:
+    external: true
+  overseerr_api:
+    external: true
+  prowlarr_api:
+    external: true
+  radarr_api:
+    external: true
+  sonarr_api:
+    external: true
+
+volumes:
+  #   Cofbilion
+  # --------------------------------------------------------------------------
+  cofbilion:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${COFBILION_PATH}
+  cofbilion-blackhole:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${COFBILION_PATH}/blackhole
+
+  #   Thinmbahad
+  # --------------------------------------------------------------------------
+  thinmbahad-audiobooks:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.01.Audiobooks/library
+  thinmbahad-comics:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.02.Comics/library
+  thinmbahad-ebooks:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.03.eBooks/library
+  thinmbahad-manga:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.04.Manga/library
+  thinmbahad-movies:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/96.Video/96.04.Movies
+  thinmbahad-music:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/91.Audio/91.01.Music
+  thinmbahad-tv:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/96.Video/96.05.TV

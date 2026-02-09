@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# =============================================================================
+# Orange Pi 5 / RK3588 Mali-G610 OpenCL Installer
+# Target: Armbian / Ubuntu (Kernel Driver g13p0)
+# =============================================================================
+
+set -e # Exit immediately if a command exits with a non-zero status.
+
+# 1. Check for Root
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root (use sudo)"
+  exit 1
+fi
+
+# Detect the actual user (who ran sudo) to set permissions later
+ACTUAL_USER=${SUDO_USER:-$USER}
+echo "Installing for user: $ACTUAL_USER"
+
+echo "---------------------------------------------------------"
+echo "Step 1: Installing System Dependencies..."
+echo "---------------------------------------------------------"
+apt update
+# clinfo is for testing, the others are required by the specific libmali blob
+apt install -y clinfo libwayland-client0 libwayland-server0 libx11-xcb1 libxcb-dri2-0 wget
+
+echo "---------------------------------------------------------"
+echo "Step 2: Installing Firmware (mali_csffw.bin)..."
+echo "---------------------------------------------------------"
+mkdir -p /lib/firmware
+# Download firmware to the root of /lib/firmware where the kernel looks for it
+wget -O /lib/firmware/mali_csffw.bin https://github.com/JeffyCN/mirrors/raw/libmali/firmware/g610/mali_csffw.bin
+chmod 644 /lib/firmware/mali_csffw.bin
+echo "Firmware installed."
+
+echo "---------------------------------------------------------"
+echo "Step 3: Installing Mali User-Space Driver (g13p0)..."
+echo "---------------------------------------------------------"
+# This is the g13p0 version that matches standard OPi5 Armbian kernels
+DRIVER_URL="https://github.com/JeffyCN/mirrors/raw/libmali/lib/aarch64-linux-gnu/libmali-valhall-g610-g13p0-x11-wayland-gbm.so"
+DRIVER_FILE="libmali-valhall-g610-g13p0-x11-wayland-gbm.so"
+
+cd /usr/lib
+if [ -f "$DRIVER_FILE" ]; then
+    echo "Driver file already exists, skipping download."
+else
+    echo "Downloading driver..."
+    wget -O "$DRIVER_FILE" "$DRIVER_URL"
+fi
+
+echo "Creating symlink /usr/lib/libmali.so..."
+# Force create link (-f) to overwrite any incorrect previous links
+ln -sf "$DRIVER_FILE" libmali.so
+
+echo "---------------------------------------------------------"
+echo "Step 4: Configuring OpenCL ICD..."
+echo "---------------------------------------------------------"
+mkdir -p /etc/OpenCL/vendors
+echo "/usr/lib/libmali.so" > /etc/OpenCL/vendors/mali.icd
+echo "ICD registry created."
+
+echo "---------------------------------------------------------"
+echo "Step 5: Setting Permissions..."
+echo "---------------------------------------------------------"
+# Add the user to render/video groups to access /dev/mali0
+usermod -aG render,video "$ACTUAL_USER"
+echo "User $ACTUAL_USER added to 'render' and 'video' groups."
+
+echo "---------------------------------------------------------"
+echo "Installation Complete!"
+echo "---------------------------------------------------------"
+echo "1. Reboot your device to load the new firmware: 'sudo reboot'"
+echo "2. After reboot, run 'clinfo' to verify."
+echo "---------------------------------------------------------"

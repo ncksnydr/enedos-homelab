@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# --------------------------------------------------------------------------
+#   Scripts → Helpers → Oh My Zsh
+# --------------------------------------------------------------------------
+
+# Load logging.
+source $ENEDOS_ALIASES_DIR/logging
+
+function zsh_ohmyzsh_install {
+  sudo apt install -y zsh git || error "Failed to install zsh or git!"
+  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || error "Failed to install ohmyzsh!"
+  chsh -s $(which zsh) || error "Failed to set zsh as default shell!"
+}
+
+function zsh_ohmyzsh_jovial_install {
+  curl -sSL https://github.com/zthxxx/jovial/raw/master/installer.sh | sudo -E bash -s ${USER:=`whoami`}
+}

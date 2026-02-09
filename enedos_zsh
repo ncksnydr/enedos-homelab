@@ -1,0 +1,18 @@
+#!/usr/bin/env zsh
+# --------------------------------------------------------------------------
+#   Enedos ZSH extension
+# --------------------------------------------------------------------------
+
+# Define exports
+export ENEDOS_HELPERS_DIR="$HOME/enedos/helpers"
+export ENEDOS_ALIASES_DIR="$ENEDOS_HELPERS_DIR/aliases"
+export ENEDOS_LOG_DIR="$HOME/enedos/helpers/logs"
+
+
+# These need to be loaded first.
+source $ENEDOS_ALIASES_DIR/logging
+source $ENEDOS_ALIASES_DIR/docker
+
+# Load other helpers.
+source $ENEDOS_ALIASES_DIR/ohmyzsh
+source $ENEDOS_ALIASES_DIR/portainer

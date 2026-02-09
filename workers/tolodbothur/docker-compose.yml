@@ -1,0 +1,98 @@
+# --------------------------------------------------------------------------
+#   Tolodbothur
+#   Master of the Eight-Legged Beast
+# --------------------------------------------------------------------------
+#   Services for 3D printing, model management, and more.
+# --------------------------------------------------------------------------
+
+services:
+  # Manyfold (https://manyfold.app)
+  manyfold:
+    image: lscr.io/linuxserver/manyfold:latest
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    cap_drop:
+      - ALL
+    environment:
+      PUID: ${PUID_NAS:-1000}
+      PGID: ${PGID_NAS:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      FILE__DATABASE_URL: /run/secrets/manyfold_database_url
+      REDIS_URL: redis://10.0.1.45:61813
+      FILE__SECRET_KEY_BASE: /run/secrets/manyfold_secret_key
+    networks:
+      - gulhir
+    ports:
+      - 61812:3214
+    secrets:
+      - manyfold_database_url
+      - manyfold_secret_key
+    volumes:
+      - gogiwnadh-services-manyfold:/config
+      - gogiwnadh-assets-models:/libraries
+    depends_on:
+      - redis-manyfold
+      - postgres
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Tolodbothur
+        - homepage.instance.admin.name=Manyfold
+        - homepage.instance.admin.description=3D model manager
+        - homepage.instance.admin.icon=sh-manyfold
+        - homepage.instance.admin.href=${MANYFOLD_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi5 == true
+
+  # Redis (https://github.com/docker-library/redis)
+  redis-manyfold:
+    image: redis:8.0-alpine
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - 61813:6379
+    volumes:
+      - ${BASE_PATH:-.}/redis/manyfold:/data
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=Redis
+        - homepage.instance.admin.description=Redis memory cache
+        - homepage.instance.admin.icon=redis.svg
+      placement:
+        constraints:
+          - node.hostname == raedorvudh
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  manyfold_database_url:
+    external: true
+  manyfold_secret_key:
+    external: true
+
+volumes:
+  gogiwnadh-services-manyfold:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/manyfold
+  gogiwnadh-assets-models:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_ASSETS}/78.Models

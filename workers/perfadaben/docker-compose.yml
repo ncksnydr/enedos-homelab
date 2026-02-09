@@ -1,0 +1,234 @@
+# --------------------------------------------------------------------------
+#   Perfadaben
+#   The Book Lover
+# --------------------------------------------------------------------------
+#   Services for audiobooks, eBooks, and comics.
+# --------------------------------------------------------------------------
+services:
+  # Audiobookshelf (https://www.audiobookshelf.org)
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/New_York}
+      AUDIOBOOKSHELF_API: filepath:/run/secrets/audiobookshelf_api
+    ports:
+      - 42309:80
+    secrets:
+      - audiobookshelf_api
+    volumes:
+      - ${BASE_PATH:-.}/audiobookshelf/config:/config
+      - gogiwnadh-services-audiobookshelf-metadata:/metadata
+      - thinmbahad-audiobooks-library:/audiobooks
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Perfadaben
+        - homepage.instance.admin.name=Audiobookshelf
+        - homepage.instance.admin.description=Audiobook manager and player
+        - homepage.icon=audiobookshelf.svg
+        - homepage.href=${AUDIOBOOKSHELF_URL:-http://localhost}
+        - homepage.instance.public.group=Library
+        - homepage.instance.public.name=Audiobooks
+        - homepage.instance.admin.widget.type=audiobookshelf
+        - homepage.instance.admin.widget.url=http://10.0.1.45:42309
+        - homepage.instance.admin.widget.key=${AUDIOBOOKSHELF_API:-changeMe}
+        - homepage.instance.admin.widget.fields=["books", "booksDuration"]
+      placement:
+        constraints:
+          - node.hostname == budhforod
+
+  # Calibre (https://calibre-ebook.com)
+  calibre:
+    image: lscr.io/linuxserver/calibre:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      CALIBRE_OVERRIDE_DATABASE_PATH: /metadata/metadata.db
+    ports:
+      - 30353:8080
+      - 30354:8081
+    volumes:
+      - ${BASE_PATH:-.}/calibre/metadata:/metadata
+      - gogiwnadh-services-calibre-config:/config
+      - thinmbahad-ebooks-library:/books
+      - thinmbahad-ebooks-import:/watch
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Perfadaben
+        - homepage.instance.admin.name=Calibre
+        - homepage.instance.admin.description=eBook library manager
+        - homepage.instance.admin.icon=calibre.svg
+        - homepage.instance.admin.href=${CALIBRE_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.hostname == budhforod
+
+  # Kavita (https://kavita.io)
+  kavita:
+    image: jvmilazz0/kavita:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      KAVITA_API: filepath:/run/secrets/kavita_api
+    ports:
+      - 62453:5000
+    secrets:
+      - kavita_api
+    volumes:
+      - ${BASE_PATH:-.}/kavita/config:/kavita/config
+      - thinmbahad-ebooks-library:/ebooks
+      - thinmbahad-comics-library:/comics
+      - thinmbahad-manga-library:/manga
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Perfadaben
+        - homepage.instance.admin.name=Kavita
+        - homepage.instance.public.group=Library
+        - homepage.instance.public.name=Comics
+        - homepage.description=Comic book reader
+        - homepage.icon=kavita.svg
+        - homepage.href=${KAVITA_URL:-http://localhost}
+        - homepage.instance.admin.widget.type=kavita
+        - homepage.instance.admin.widget.url=http://10.0.1.45:62453
+        - homepage.instance.admin.widget.key=${KAVITA_API:-changeMe}
+        - homepage.instance.admin.widget.fields=["seriesCount", "totalFiles"]
+      placement:
+        constraints:
+          - node.hostname == budhforod
+
+  # Komf (https://github.com/Snd-R/komf)
+  komf:
+    image: sndxr/komf:latest
+    configs:
+      - source: komf-config
+        target: /config/application.yml
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      KOMF_KAVITA_BASE_URI: http://10.0.1.45:62453
+      KOMF_KAVITA_API_KEY: filepath:/run/secrets/kavita_api
+    ports:
+      - 62454:8085
+    secrets:
+      - kavita_api
+    volumes:
+      - ${BASE_PATH:-.}/komf/config:/config
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Perfadaben
+        - homepage.instance.admin.name=Komf
+        - homepage.instance.admin.description=Kavita metadata fetcher
+        - homepage.instance.admin.icon=komf.svg
+        - homepage.instance.admin.href=${KOMF_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.hostname == budhforod
+
+  # # Audiobook Organizer (https://github.com/jeeftor/audiobook-organizer)
+  # # @NOTE This is a one-time run service to organize audiobooks. Saving for reference.
+  # audiobook-organizer:
+  #   image: jeffsui/audiobook-organizer:latest
+  #   command: >
+  #     --dir /source
+  #     --output /output
+  #     --layout 'author-series-title'
+  #     --author-fields 'author'
+  #     --series-field 'series'
+  #     --title-field 'title'
+  #     --track-field 'track'
+  #     --flat
+  #     --verbose
+  #   environment:
+  #     PUID: ${PUID:-1000}
+  #     PGID: ${PGID:-1000}
+  #     TZ: ${TZ:-America/Los_Angeles}
+  #   volumes:
+  #     - thinmbahad-audiobooks-import:/source
+  #     - thinmbahad-audiobooks-library:/output
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.hostname == budhforod
+
+configs:
+  komf-config:
+    external: true
+
+secrets:
+  audiobookshelf_api:
+    external: true
+  hardcover_api:
+    external: true
+  kavita_api:
+    external: true
+
+volumes:
+  #   Gogiwnadh Volumes
+  # --------------------------------------------------------------------------
+  gogiwnadh-services-audiobookshelf-metadata:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/audiobookshelf/metadata
+  gogiwnadh-services-calibre-config:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/calibre/config
+
+  #   Thinmbahad Volumes
+  # --------------------------------------------------------------------------
+  thinmbahad-audiobooks-import:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.01.Audiobooks/import
+  thinmbahad-audiobooks-library:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.01.Audiobooks/library
+  thinmbahad-comics-import:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.02.Comics/import
+  thinmbahad-comics-library:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.02.Comics/library
+  thinmbahad-ebooks-import:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.03.eBooks/import
+  thinmbahad-ebooks-library:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.03.eBooks/library
+  thinmbahad-manga-import:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.04.Manga/import
+  thinmbahad-manga-library:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${THINMBAHAD_PATH}/92.Books/92.04.Manga/library

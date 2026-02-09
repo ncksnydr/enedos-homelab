@@ -1,0 +1,285 @@
+# --------------------------------------------------------------------------
+#   Goistor
+#   The All-Knower
+# --------------------------------------------------------------------------
+#   Services related to databases and caching.
+# --------------------------------------------------------------------------
+
+version: "3.9"
+services:
+  # DB Backup (https://github.com/tiredofit/docker-db-backup)
+  db-backup:
+    image: tiredofit/db-backup
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      TIMEZONE: ${TZ:-America/Los_Angeles}
+      BACKUP_JOB_CONCURRENCY: 1
+      DB01_BACKUP_BEGIN: 0 3 * * *
+      DB01_HOST: mysql
+      DB01_NAME: ALL
+      DB01_PASSWORD_FILE: /run/secrets/root_password
+      DB01_TYPE: mariadb
+      DB01_USER_FILE: /run/secrets/root_username
+      DB02_BACKUP_BEGIN: 0 4 * * *
+      DB02_HOST: postgres
+      DB02_NAME: ALL
+      DB02_PASSWORD_FILE: /run/secrets/root_password
+      DB02_TYPE: postgres
+      DB02_USER_FILE: /run/secrets/root_username
+      DEFAULT_BACKUP_BEGIN: 0 3 * * *
+      DEFAULT_BACKUP_INTERVAL: 1440
+      DEFAULT_CHECKSUM: NONE
+      DEFAULT_CLEANUP_TIME: 8640
+      DEFAULT_COMPRESSION: GZ
+    networks:
+      - gulhir
+    secrets:
+      - root_password
+      - root_username
+    volumes:
+      - gogiwnadh-storage-databases:/backup
+    depends_on:
+      - mysql
+      - postgres
+    deploy:
+      labels:
+        - homepage.instance.admin.description=Automatic database backups
+        - homepage.instance.admin.icon=mdi-database-clock
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=DB Backup
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # MySQL/MariaDB (https://github.com/yobasystems/alpine-mariadb)
+  mysql:
+    image: yobasystems/alpine-mariadb:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/root_password
+      MYSQL_USER_FILE: /run/secrets/root_username
+      MYSQL_PASSWORD_FILE: /run/secrets/root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - gulhir
+    ports:
+      - 3306:3306
+    secrets:
+      - root_password
+      - root_username
+    volumes:
+      - ${BASE_PATH:-.}/mysql:/var/lib/mysql
+    deploy:
+      labels:
+        - homepage.instance.admin.description=MySQL/MariaDB database
+        - homepage.instance.admin.icon=mysql.svg
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=MySQL
+      placement:
+        constraints:
+          - node.labels.database == true
+
+  # PHPMyAdmin (https://github.com/phpmyadmin/docker)
+  phpmyadmin:
+    image: lscr.io/linuxserver/phpmyadmin:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      FILE__PMA_PASSWORD: /run/secrets/phpmyadmin_password
+      FILE__PMA_USER: /run/secrets/phpmyadmin_username
+      PMA_HOST: mysql
+      PMA_PMADB: phpmyadmin
+    networks:
+      - gulhir
+    ports:
+      - 59379:80
+    secrets:
+      - phpmyadmin_password
+      - phpmyadmin_username
+    volumes:
+      - gogiwnadh-storage-phpmyadmin:/config
+    depends_on:
+      - mysql
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=PHPMyAdmin
+        - homepage.instance.admin.description=MySQL/MariaDB database management
+        - homepage.instance.admin.icon=phpmyadmin.svg
+        - homepage.instance.admin.href=${PHPMYADMIN_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # Postgres (https://hub.docker.com/_/postgres)
+  postgres:
+    image: tensorchord/pgvecto-rs:pg16-v0.2.0
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/root_password
+      POSTGRES_USER_FILE: /run/secrets/root_username
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gulhir
+    ports:
+      - 5432:5432
+    secrets:
+      - root_password
+      - root_username
+    volumes:
+      - ${BASE_PATH:-.}/postgres:/var/lib/postgresql/data/
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=PostgreSQL
+        - homepage.instance.admin.description=PostgreSQL database
+        - homepage.instance.admin.icon=postgresql.svg
+      placement:
+        constraints:
+          - node.labels.database == true
+
+  # PGAdmin (https://www.pgadmin.org)
+  postgres-admin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      PGADMIN_DEFAULT_EMAIL: ${BASE_EMAIL:-admin@localhost}
+      PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pgadmin_password
+    networks:
+      - gulhir
+    ports:
+      - 5050:80
+    secrets:
+      - pgadmin_password
+    volumes:
+      - gogiwnadh-storage-pgadmin:/var/lib/pgadmin/
+    depends_on:
+      - postgres
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=PG Admin
+        - homepage.instance.admin.description=MySQL/MariaDB database management
+        - homepage.instance.admin.icon=pgadmin.svg
+        - homepage.instance.admin.href=${POSTGRES_ADMIN_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # Redis (https://github.com/docker-library/redis)
+  redis:
+    image: redis:8.0-alpine
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - gulhir
+    ports:
+      - 6379:6379
+    volumes:
+      - ${BASE_PATH:-.}/redis:/data
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=Redis
+        - homepage.instance.admin.description=Redis memory cache
+        - homepage.instance.admin.icon=redis.svg
+      placement:
+        constraints:
+          - node.labels.redis == true
+
+  # Redis Insight (https://github.com/docker-library/redis)
+  redis-insight:
+    image: redis/redisinsight:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+    networks:
+      - gulhir
+    ports:
+      - 48277:5540
+    volumes:
+      - gogiwnadh-storage-redis-insight:/data
+    depends_on:
+      - redis
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Goistor
+        - homepage.instance.admin.name=Redis Insight
+        - homepage.instance.admin.description=Redis GUI
+        - homepage.instance.admin.icon=redis.svg
+        - homepage.instance.admin.href=${REDIS_INSIGHT_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  phpmyadmin_password:
+    external: true
+  phpmyadmin_username:
+    external: true
+  pgadmin_password:
+    external: true
+  root_email:
+    external: true
+  root_password:
+    external: true
+  root_username:
+    external: true
+
+volumes:
+  gogiwnadh-storage-databases:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_STORAGE}/81.Device-backups/81.04.Databases
+  gogiwnadh-storage-phpmyadmin:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/phpmyadmin
+  gogiwnadh-storage-pgadmin:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/pgadmin
+  gogiwnadh-storage-redis-insight:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/redis-insight

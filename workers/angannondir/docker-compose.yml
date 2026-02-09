@@ -1,0 +1,261 @@
+# --------------------------------------------------------------------------
+#   Angannondir
+#   The Iron Gatekeeper
+# --------------------------------------------------------------------------
+#   Services related to access and authentication.
+# --------------------------------------------------------------------------
+services:
+  # Authentik (https://goauthentik.io/)
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2025.8.4
+    command: server
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__NAME: file:///run/secrets/authentik_database
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:////run/secrets/root_password
+      AUTHENTIK_POSTGRESQL__USER: file:////run/secrets/root_username
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_SECRET_KEY: file:////run/secrets/authentik_secret_key
+    networks:
+      - gulhir
+    ports:
+      - 50120:9000
+      - 50121:9443
+    secrets:
+      - authentik_database
+      - authentik_secret_key
+      - root_password
+      - root_username
+    volumes:
+      - gogiwnadh-storage-authentik-media:/media
+      - gogiwnadh-storage-authentik-templates:/templates
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Angannondír
+        - homepage.instance.admin.name=Authentik
+        - homepage.instance.admin.description=Single sign-on and identity provider (server)
+        - homepage.instance.admin.icon=authentik.svg
+        - homepage.instance.admin.href=${AUTHENTIK_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2025.8.4
+    command: worker
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__NAME: file:///run/secrets/authentik_database
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:////run/secrets/root_password
+      AUTHENTIK_POSTGRESQL__USER: file:////run/secrets/root_username
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_SECRET_KEY: file:////run/secrets/authentik_secret_key
+    networks:
+      - gulhir
+    secrets:
+      - authentik_database
+      - authentik_secret_key
+      - root_password
+      - root_username
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gogiwnadh-storage-authentik-media:/media
+      - gogiwnadh-storage-authentik-templates:/templates
+      - gogiwnadh-storage-authentik-certs:/certs
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Angannondír
+        - homepage.instance.admin.name=Authentik
+        - homepage.instance.admin.description=Single sign-on and identity provider (worker)
+        - homepage.instance.admin.icon=authentik.svg
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  # Cloudflare (https://github.com/favonia/cloudflare-ddns)
+  cloudflare-ddns:
+    image: favonia/cloudflare-ddns:latest
+    cap_drop:
+      - all
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      CLOUDFLARE_API_TOKEN_FILE: /run/secrets/api_cloudflare
+      DOMAINS: ${DOMAINS:-changeMe.biz}
+      IP6_PROVIDER: "none"
+      PROXIED: "TRUE"
+    secrets:
+      - api_cloudflare
+    security_opt:
+      - no-new-privileges:true
+    user: "${PUID:-1000}:${PGID:-1000}"
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Angannondír
+        - homepage.instance.admin.name=Cloudflare DDNS
+        - homepage.instance.admin.description=Dynamic DNS updater for Cloudflare
+        - homepage.instance.admin.icon=cloudflare.svg
+      placement:
+        constraints:
+          - node.labels.pi4 == true
+
+  dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    environment:
+      CONTAINERS: 1
+      SERVICES: 1
+      TASKS: 1
+      POST: 0
+    networks:
+      - gulhir
+    ports:
+      - 127.0.0.1:2375:2375
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  # NGINX Proxy Manager (https://github.com/NginxProxyManager/nginx-proxy-manager)
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      DB_POSTGRES_HOST: postgres
+      DB_POSTGRES_PORT: 5432
+      DB_POSTGRES_USER__FILE: /run/secrets/root_username
+      DB_POSTGRES_PASSWORD__FILE: /run/secrets/root_password
+      DB_POSTGRES_NAME__FILE: /run/secrets/nginx_proxy_manager_database
+      DISABLE_IPV6: "TRUE"
+      HOMEPAGE_FILE_USERNAME: /run/secrets/root_email
+      HOMEPAGE_FILE_PASSWORD: /run/secrets/nginx_proxy_manager_password
+    networks:
+      - gulhir
+    ports:
+      - 80:80
+      - 443:443
+      - 81:81
+    secrets:
+      - nginx_proxy_manager_database
+      - nginx_proxy_manager_password
+      - root_email
+      - root_password
+      - root_username
+
+    volumes:
+      - ${BASE_PATH:-.}/nginx-proxy-manager/data:/data
+      - ${BASE_PATH:-.}/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - mysql
+    deploy:
+      labels:
+        - homepage.instance.admin.description=Reverse proxy manager
+        - homepage.instance.admin.href=${NGINX_PROXY_MANAGER_URL:-http://localhost}
+        - homepage.instance.admin.icon=nginx-proxy-manager.svg
+        - homepage.instance.admin.group=Angannondír
+        - homepage.instance.admin.name=NGINX Proxy Manager
+        - homepage.instance.admin.widget.type=npm
+        - homepage.instance.admin.widget.url=${MANAGER_IP:-http://localhost}:81
+        - homepage.instance.admin.widget.username=${HOMEPAGE_FILE_USERNAME}
+        - homepage.instance.admin.widget.password=${HOMEPAGE_FILE_PASSWORD}
+        - homepage.instance.admin.widget.fields=["enabled", "disabled", "total"]
+      placement:
+        constraints:
+          - node.role == manager
+
+  pihole:
+    image: pihole/pihole:latest
+    cap_add:
+      - SYS_TIME
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      WEBPASSWORD_FILE: /run/secrets/pihole_password
+      FTLCONF_dns_listeningMode: "all"
+      FTLCONF_LOCAL_IPV4: "10.0.1.45"
+      PIHOLE_DNS_: "1.1.1.1"
+      HOMEPAGE_FILE_PIHOLE_API_KEY: /run/secrets/pihole_api
+    network_mode: host
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 39238:80/tcp
+      - 39239:443/tcp
+    secrets:
+      - pihole_api
+      - pihole_password
+    volumes:
+      - ${BASE_PATH:-.}/pihole:/etc/pihole
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Angannondír
+        - homepage.instance.admin.name=Pihol
+        - homepage.instance.admin.description=DNS sinkhole and ad blocker
+        - homepage.instance.admin.href=${PIHOLE_URL:-http://localhost}
+        - homepage.instance.admin.icon=pihole.svg
+        - homepage.instance.admin.widget.type=pihole
+        - homepage.instance.admin.widget.url=${MANAGER_IP:-http://localhost}:81
+        - homepage.instance.admin.widget.version=6
+        - homepage.instance.admin.widget.key=${HOMEPAGE_FILE_PIHOLE_API_KEY}
+        - homepage.instance.admin.widget.fields=["queries", "blocked", "blocked_percent", "gravity"]
+      placement:
+        constraints:
+          - node.labels.honeypot == true
+
+networks:
+  gulhir:
+    external: true
+
+secrets:
+  api_cloudflare:
+    external: true
+  authentik_database:
+    external: true
+  authentik_secret_key:
+    external: true
+  nginx_proxy_manager_database:
+    external: true
+  nginx_proxy_manager_password:
+    external: true
+  pihole_api:
+    external: true
+  pihole_password:
+    external: true
+  root_email:
+    external: true
+  root_password:
+    external: true
+  root_username:
+    external: true
+
+volumes:
+  gogiwnadh-storage-authentik-certs:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/authentik/certs
+  gogiwnadh-storage-authentik-media:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/authentik/media
+  gogiwnadh-storage-authentik-templates:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${GOGIWNADH_PATH_SERVICES}/authentik/templates
