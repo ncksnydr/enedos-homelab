@@ -1,0 +1,15 @@
+# --------------------------------------------------------------------------
+#   Aliases → Utils
+# --------------------------------------------------------------------------
+
+function mam-create-cookie {
+  curl -c ~/mam.cookies -b "mam_id=$1" https://t.myanonamouse.net
+}
+
+function mam-refresh-cookie {
+  curl -c ~/mam.cookies -b ~/mam.cookies https://t.myanonamouse.net
+}
+
+function get-ip {
+  curl icanhazip.com
+}

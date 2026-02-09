@@ -34,6 +34,10 @@ function _find_manager_node {
   _send_log find_manager_node
 }
 
+function _refresh_mam {
+  curl -c /home/herupa/mam.cookies -b ~/mam.cookies https://t.myanonamouse.net
+}
+
 
 #   Main
 # ------------------------------------------------------------
@@ -54,8 +58,9 @@ function _print_usage {
   printf "Usage: ..."
 }
 
-while getopts "mw" flag; do
+while getopts "gmw" flag; do
   case "${flag}" in
+    g) _refresh_mam ;;
     m) _run_manager_jobs ;;
     w) _run_worker_jobs ;;
     *) _print_usage

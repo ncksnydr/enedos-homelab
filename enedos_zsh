@@ -16,3 +16,4 @@ source $ENEDOS_ALIASES_DIR/docker
 # Load other helpers.
 source $ENEDOS_ALIASES_DIR/ohmyzsh
 source $ENEDOS_ALIASES_DIR/portainer
+source $ENEDOS_ALIASES_DIR/utils
