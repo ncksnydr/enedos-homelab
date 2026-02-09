@@ -42,7 +42,7 @@ services:
       - root_password
       - root_username
     volumes:
-      - ${BASE_PATH:-.}/aesordur/mealie:/app/data
+      - ${BASE_PATH:-.}/mealie:/app/data
     deploy:
       labels:
         - homepage.description=Recipies and meal planning
@@ -58,7 +58,7 @@ services:
         - homepage.widget.fields=["recipes"]
       placement:
         constraints:
-          - node.labels.pi4 == true
+          - node.hostname == butharad
 
 networks:
   gulhir:
@@ -73,11 +73,3 @@ secrets:
     external: true
   root_username:
     external: true
-
-volumes:
-  gogiwnadh-storage-mealie:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/mealie
