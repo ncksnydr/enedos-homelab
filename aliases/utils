@@ -13,3 +13,12 @@ function mam-refresh-cookie {
 function get-ip {
   curl icanhazip.com
 }
+
+function mkcd {
+  mkdir -p $1
+  cd $1
+}
+
+function reload-shell {
+  source ~/.zshrc
+}
