@@ -7,198 +7,154 @@
 
 services:
   # Immich (https://immich.app/)
-  immich-server:
+  immich-server-resources:
     image: ghcr.io/immich-app/immich-server:release
     environment:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
-      DB_DATABASE_NAME_FILE: /run/secrets/immich_bucket_database_name
+      DB_DATABASE_NAME_FILE: /run/secrets/immich_resources_database_name
       DB_HOSTNAME: postgres
       DB_PASSWORD_FILE: /run/secrets/root_password
       DB_PORT: 5432
       DB_USERNAME_FILE: /run/secrets/root_username
-      MACHINE_LEARNING_WORKERS: 2
-      REDIS_DBINDEX: 2
-      REDIS_HOSTNAME: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://immich-redis:6379
     networks:
       - gulhir
     ports:
       - 65017:2283
     secrets:
-      - immich_bucket_database_name
+      - immich_resources_database_name
       - root_username
       - root_password
     volumes:
-      - gogiwnadh-assets-immich-bucket:/data
       - /etc/localtime:/etc/localtime:ro
+      - ${BASE_PATH:-.}/immich/resources/data:/data
+      - gogiwnadh-assets-immich-resources-library:/opt/external_library
+      - gogiwnadh-services-immich-resources-backups:/data/backups
     depends_on:
+      - immich-redis
       - postgres
-      - redis
     deploy:
       labels:
         - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Immich Server (Docs)
+        - homepage.instance.admin.name=Immich Server (Resources)
         - homepage.instance.admin.description=Media-based knowledge management system
         - homepage.instance.admin.icon=immich.svg
-        - homepage.instance.admin.href=${IMMICH_BUCKET_URL:-http://localhost}
+        - homepage.instance.admin.href=${IMMICH_RESOURCES_URL:-http://localhost}
       placement:
         constraints:
-          - node.labels.pi5 == true
+          - node.hostname == raedorvudh
+
+  immich-redis:
+    container_name: immich-redis
+    image: docker.io/valkey/valkey:8-bookworm@sha256:ff21bc0f8194dc9c105b769aeabf9585fea6a8ed649c0781caeac5cb3c247884
+    healthcheck:
+      test: redis-cli ping || exit 1
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Glaermílui
+        - homepage.instance.admin.name=Immich Redis (Resources)
+        - homepage.instance.admin.description=In-memory database for Immich Resources
+        - homepage.instance.admin.icon=valkey.svg
+      placement:
+        constraints:
           - node.role == worker
 
-  # immich-redis:
-  #   container_name: immich-redis
-  #   image: docker.io/valkey/valkey:8-bookworm@sha256:ff21bc0f8194dc9c105b769aeabf9585fea6a8ed649c0781caeac5cb3c247884
-  #   healthcheck:
-  #     test: redis-cli ping || exit 1
-  #   deploy:
-  #     labels:
-  #       - homepage.instance.admin.group=Glaermílui
-  #       - homepage.instance.admin.name=Immich Redis (Docs)
-  #       - homepage.instance.admin.description=In-memory database for Immich Docs
-  #       - homepage.instance.admin.icon=valkey.svg
-  #     placement:
-  #       constraints:
-  #         - node.labels.pi4 == true
-  #         - node.role == worker
-
-  immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:release
+  # Paperless-ngx (https://docs.paperless-ngx.com/)
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
     environment:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
-      DB_DATABASE_NAME_FILE: /run/secrets/immich_bucket_database_name
-      DB_HOSTNAME: postgres
-      DB_PASSWORD_FILE: /run/secrets/root_password
-      DB_PORT: 5432
-      DB_USERNAME_FILE: /run/secrets/root_username
-      MACHINE_LEARNING_WORKERS: 2
-      REDIS_DBINDEX: 2
-      REDIS_HOSTNAME: immich-redis
-      REDIS_PORT: 6379
+      PAPERLESS_ADMIN_MAIL_FILE: /run/secrets/root_email
+      PAPERLESS_ADMIN_PASSWORD_FILE: /run/secrets/paperless_admin_password
+      PAPERLESS_ADMIN_USER_FILE: /run/secrets/paperless_admin_username
+      PAPERLESS_DBHOST: postgres
+      PAPERLESS_DBPORT: 5432
+      PAPERLESS_DBNAME_FILE: /run/secrets/paperless_database_name
+      PAPERLESS_DBUSER_FILE: /run/secrets/root_username
+      PAPERLESS_DBPASS_FILE: /run/secrets/root_password
+      PAPERLESS_REDIS: redis://paperless-redis:6379
+      PAPERLESS_OCR_LANGUAGE: eng
+      PAPERLESS_SECRET_KEY_FILE: /run/secrets/paperless_secret_key
+      PAPERLESS_URL: ${PAPERLESS_URL:-http://localhost}
+      PAPERLESS_CONSUMPTION_DIR: /consume
+      PAPERLESS_DATA_DIR: /data
+      PAPERLESS_MEDIA_ROOT: /media
+      PAPERLESS_TIKA_ENABLED: 1
+      PAPERLESS_TIKA_ENDPOINT: http://tika:9998
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
+      PAPERLESS_TIME_ZONE: ${TZ:-America/Los_Angeles}
     networks:
       - gulhir
-    secrets:
-      - immich_bucket_database_name
-      - root_username
-      - root_password
-    volumes:
-      - gogiwnadh-services-immich-bucket:/cache
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Immich ML Worker (Docs)
-        - homepage.instance.admin.description=Machine learning worker for Immich Docs
-        - homepage.instance.admin.icon=immich.svg
-      placement:
-        constraints:
-          - node.labels.m1 == true
-
-  # Karakeep ()
-  karakeep:
-    image: ghcr.io/karakeep-app/karakeep:latest
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Los_Angeles
-      - MEILI_MASTER_KEY=d5PKPR9vsraOmXXl63oEQAGCiHCuB0GKS8snzxsyuWJLWT
-      - NEXTAUTH_SECRET=kfEan4CG8fse22JGbiGmQLpQKldp3MxfQOqr8rSGRik3Rp
-      - OLLAMA_BASE_URL=http://10.0.1.89:11434
-      - ASSET_PREPROCESSING_NUM_WORKERS=2
-      - ASSET_STORE_S3_BUCKET=95.01.karakeep
-      - ASSET_STORE_S3_REGION=us-west-1
-      - BROWSER_WEB_URL=http://chrome:9222
-      - CRAWLER_DOWNLOAD_BANNER_IMAGE=true
-      - CRAWLER_FULL_PAGE_ARCHIVE=true
-      - CRAWLER_NUM_WORKERS=2
-      - CRAWLER_VIDEO_DOWNLOAD_MAX_SIZE=-1
-      - CRAWLER_VIDEO_DOWNLOAD=true
-      - DATA_DIR=/data
-      - DB_WAL_MODE=true
-      - DISABLE_SIGNUPS=true
-      - INFERENCE_CONTEXT_LENGTH=6144
-      - INFERENCE_ENABLE_AUTO_SUMMARIZATION=true
-      - INFERENCE_ENABLE_AUTO_TAGGING=true
-      - INFERENCE_IMAGE_MODEL="llava:13b"
-      - INFERENCE_MAX_OUTPUT_TOKENS=6144
-      - INFERENCE_TEXT_MODEL="llama3.3:70b"
-      - MAX_ASSET_SIZE_MB=9000
-      - MEILI_ADDR=http://meilisearch:7700
-      - NEXTAUTH_URL=http://10.0.1.45:59652
-      - OCR_CACHE_DIR=/data/ocr_cache
-      - RATE_LIMITING_ENABLED=false
-      - SEARCH_NUM_WORKERS=2
     ports:
-      - 59652:3000
+      - 65020:8000
+    secrets:
+      - paperless_admin_password
+      - paperless_admin_username
+      - paperless_database_name
+      - paperless_secret_key
+      - root_email
+      - root_password
+      - root_username
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ${BASE_PATH:-.}/karakeep:/data
-      - gogiwnadh-assets-karakeep:/data/assets
-      - gogiwnadh-services-karakeep-ocr-cache:/data/ocr_cache
-      - gogiwnadh-services-karakeep-search:/data/meilisearch_data
+      - ${BASE_PATH:-.}/paperless/config:/data
+      - gogiwnadh-assets-paperless-media:/media
+      - gogiwnadh-assets-paperless-consume:/consume
+      - gogiwnadh-services-paperless-backups:/export
     depends_on:
-      - chrome
-      - meilisearch
+      - gotenberg
+      - paperless-redis
+      - postgres
+      - tika
     deploy:
       labels:
         - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Karakeep
-        - homepage.instance.admin.description=Personal knowledge management system
-        - homepage.instance.admin.icon=karakeep-dark.svg
+        - homepage.instance.admin.name=Paperless-ngx
+        - homepage.instance.admin.description=Document management system
+        - homepage.instance.admin.icon=paperless-ngx.svg
+        - homepage.instance.admin.href=${PAPERLESS_URL:-http://localhost}
       placement:
         constraints:
           - node.hostname == budganthui
-          - node.role == worker
 
-  chrome:
-    image: gcr.io/zenika-hub/alpine-chrome:latest
-    command:
-      - --no-sandbox
-      - --disable-gpu
-      - --disable-dev-shm-usage
-      - --remote-debugging-address=0.0.0.0
-      - --remote-debugging-port=9222
-      - --hide-scrollbars
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Chrome
-        - homepage.instance.admin.description=Crawler for Karakeep
-        - homepage.instance.admin.icon=chrome.svg
-      placement:
-        constraints:
-          - node.labels.pi5 == true
-          - node.role == worker
-
-  meilisearch:
-    image: getmeili/meilisearch:latest
-    environment:
-      MEILI_NO_ANALYTICS: "true"
-    volumes:
-      - gogiwnadh-services-karakeep-search:/meili_data
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Meilisearch
-        - homepage.instance.admin.description=Search for Karakeep
-        - homepage.instance.admin.icon=meilisearch.svg
-      placement:
-        constraints:
-          - node.labels.pi5 == true
-          - node.role == worker
-
-  # Paperless-ngx (https://paperless-ngx.readthedocs.io/)
-  gotenberg:
-    image: docker.io/gotenberg/gotenberg:8
-    command:
-      - "gotenberg"
-      - "--chromium-disable-javascript=true"
-      - "--chromium-allow-list=file:///tmp/.*"
+  paperless-redis:
+    image: docker.io/valkey/valkey:8-bookworm@sha256:ff21bc0f8194dc9c105b769aeabf9585fea6a8ed649c0781caeac5cb3c247884
+    healthcheck:
+      test: redis-cli ping || exit 1
     networks:
       - gulhir
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Glaermílui
+        - homepage.instance.admin.name=Paperless Redis
+        - homepage.instance.admin.description=In-memory database for Paperless-ngx
+        - homepage.instance.admin.icon=valkey.svg
+      placement:
+        constraints:
+          - node.hostname == budganthui
+
+  gotenberg:
+    image: gotenberg/gotenberg:latest
+    command:
+      - "gotenberg"
+      - "--api-enable-basic-auth"
+      - "--chromium-disable-javascript=true"
+      - "--chromium-allow-list=file:///tmp/.*"
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      GOTENBERG_API_BASIC_AUTH_USERNAME: filepath:/run/secrets/gotenberg_api_auth_username
+      GOTENBERG_API_BASIC_AUTH_PASSWORD: filepath:/run/secrets/gotenberg_api_auth_password
+    networks:
+      - gulhir
+    secrets:
+      - gotenberg_api_auth_username
+      - gotenberg_api_auth_password
     deploy:
       labels:
         - homepage.instance.admin.group=Glaermílui
@@ -217,99 +173,111 @@ services:
         - homepage.instance.admin.description=Text extraction service for Paperless NGX
         - homepage.instance.admin.icon=tika.svg
 
-  paperless:
-    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+  # Karakeep (https://karakeep.app/)
+  karakeep:
+    image: ghcr.io/karakeep-app/karakeep:latest
     environment:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
       TZ: ${TZ:-America/Los_Angeles}
-      PAPERLESS_ADMIN_MAIL_FILE: /run/secrets/root_email
-      PAPERLESS_ADMIN_PASSWORD_FILE: /run/secrets/paperless_admin_password
-      PAPERLESS_ADMIN_USER_FILE: /run/secrets/paperless_admin_username
-      PAPERLESS_DBHOST: postgres
-      PAPERLESS_DBNAME_FILE: /run/secrets/paperless_database_name
-      PAPERLESS_DBPASS_FILE: /run/secrets/root_password
-      PAPERLESS_DBUSER_FILE: /run/secrets/root_username
-      PAPERLESS_OCR_LANGUAGE: eng
-      PAPERLESS_REDIS: redis://redis:6379
-      PAPERLESS_SECRET_KEY_FILE: /run/secrets/paperless_secret_key
-      PAPERLESS_TIKA_ENABLED: 1
-      PAPERLESS_TIKA_ENDPOINT: http://tika:9998
-      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
-      PAPERLESS_TIME_ZONE: ${TZ:-America/Los_Angeles}
+      ASSET_PREPROCESSING_NUM_WORKERS: 2
+      BROWSER_WEB_URL: http://chrome:9222
+      CRAWLER_DOWNLOAD_BANNER_IMAGE: "true"
+      CRAWLER_FULL_PAGE_ARCHIVE: "true"
+      CRAWLER_NUM_WORKERS: 2
+      CRAWLER_VIDEO_DOWNLOAD_MAX_SIZE: -1
+      CRAWLER_VIDEO_DOWNLOAD: "true"
+      DATA_DIR: /data
+      DB_WAL_MODE: "true"
+      DISABLE_SIGNUPS: "false"
+      INFERENCE_CONTEXT_LENGTH: 6144
+      INFERENCE_ENABLE_AUTO_SUMMARIZATION: "true"
+      INFERENCE_ENABLE_AUTO_TAGGING: "true"
+      INFERENCE_IMAGE_MODEL: "llava:13b"
+      INFERENCE_MAX_OUTPUT_TOKENS: 6144
+      INFERENCE_TEXT_MODEL: "llama3.3:70b"
+      MAX_ASSET_SIZE_MB: 9000
+      MEILI_ADDR: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${GLAERMILUI_MEILI_SECRET_KEY:-changeMe}
+      NEXTAUTH_SECRET: ${GLAERMILUI_KARAKEEP_SECRET_KEY:-changeMe}
+      NEXTAUTH_URL: ${KARAKEEP_URL:-http://localhost:65022}
+      OCR_CACHE_DIR: data/ocr_cache
+      OLLAMA_BASE_URL: ${OLLAMA_INTERNAL_URL:-http://ollama:11434}
+      RATE_LIMITING_ENABLED: "false"
+      SEARCH_NUM_WORKERS: 2
     networks:
       - gulhir
     ports:
-      - 8376:8000
-    secrets:
-      - paperless_admin_password
-      - paperless_admin_username
-      - paperless_database_name
-      - paperless_secret_key
-      - root_email
-      - root_password
-      - root_username
+      - 65022:3000
     volumes:
-      - gogiwnadh-assets-paperless-consume:/usr/src/paperless/consume
-      - gogiwnadh-services-paperless-data:/usr/src/paperless/data
-      - gogiwnadh-services-paperless-export:/usr/src/paperless/export
-      - gogiwnadh-assets-paperless-media:/usr/src/paperless/media
+      - ${BASE_PATH:-.}/karakeep/data:/data
+      - gogiwnadh-assets-karakeep:/data/assets
     depends_on:
-      - gotenberg
-      - postgres
-      - redis
-      - tika
+      - chrome
+      - meilisearch
     deploy:
       labels:
         - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Paperless NGX
-        - homepage.instance.admin.description=Document management system
-        - homepage.instance.admin.icon=paperless-ngx.svg
+        - homepage.instance.admin.name=Karakeep
+        - homepage.instance.admin.description=Personal knowledge management system
+        - homepage.instance.admin.icon=karakeep-dark.svg
       placement:
         constraints:
-          - node.labels.pi4 == true
+          - node.hostname == budganthui
+
+  chrome:
+    image: gcr.io/zenika-hub/alpine-chrome:latest
+    command:
+      - --no-sandbox
+      - --disable-gpu
+      - --disable-dev-shm-usage
+      - --remote-debugging-address=0.0.0.0
+      - --remote-debugging-port=9222
+      - --hide-scrollbars
+    networks:
+      - gulhir
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Glaermílui
+        - homepage.instance.admin.name=Chrome
+        - homepage.instance.admin.description=Crawler for Karakeep
+        - homepage.instance.admin.icon=chrome.svg
+      placement:
+        constraints:
           - node.role == worker
 
-  paperless-ai:
-    image: clusterzx/paperless-ai:latest
-    cap_drop:
-      - ALL
+  meilisearch:
+    image: getmeili/meilisearch:latest
     environment:
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
-      - TZ=${TZ:-America/Los_Angeles}
-      - PAPERLESS_AI_PORT=3000
-      - RAG_SERVICE_URL=http://paperless:8000
-      - RAG_SERVICE_ENABLED=true
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MASTER_KEY: ${GLAERMILUI_MEILI_SECRET_KEY:-changeMe}
     networks:
       - gulhir
-    ports:
-      - 8377:3000
     volumes:
-      - ${BASE_PATH}:/app/data
-    depends_on:
-      - paperless
+      - ${BASE_PATH:-.}/meilisearch/data:/meili_data
     deploy:
       labels:
         - homepage.instance.admin.group=Glaermílui
-        - homepage.instance.admin.name=Paperless AI
-        - homepage.instance.admin.description=AI assistant for Paperless NGX
-        - homepage.instance.admin.icon=paperless-ngx.svg
+        - homepage.instance.admin.name=Meilisearch
+        - homepage.instance.admin.description=Search for Karakeep
+        - homepage.instance.admin.icon=meilisearch.svg
       placement:
         constraints:
-          - node.hostname == budhlefnui
-          - node.role == worker
-
-configs:
-  karakeep-env:
-    external: true
+          - node.hostname == budganthui
 
 networks:
   gulhir:
     external: true
 
 secrets:
-  immich_bucket_database_name:
+  immich_resources_database_name:
+    external: true
+  gotenberg_api_auth_password:
+    external: true
+  gotenberg_api_auth_username:
     external: true
   paperless_admin_password:
     external: true
@@ -329,66 +297,53 @@ secrets:
 volumes:
   #   Assets
   # ------------------------------------------------------------
-  gogiwnadh-assets-immich-bucket:
+  gogiwnadh-assets-immich-resources-library:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_ASSETS}/74.Images/74.02.Bucket
-  gogiwnadh-assets-karakeep:
+      device: :${GOGIWNADH_PATH_ASSETS}/79.Media/79.01.immich-resources
+
+  gogiwnadh-assets-karakeep-assets:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_ASSETS}/73.Documents/73.01.karakeep
+      device: :${GOGIWNADH_PATH_ASSETS}/73.Documents/73.01.karakeep/assets
+
   gogiwnadh-assets-paperless-media:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${GOGIWNADH_PATH_ASSETS}/73.Documents/73.02.paperless/media
+
   gogiwnadh-assets-paperless-consume:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_ASSETS}/73.Documents/73.02.paperless/import
+      device: :${GOGIWNADH_PATH_ASSETS}/73.Documents/73.02.paperless/consume
 
   #   Services
   # ------------------------------------------------------------
-  gogiwnadh-services-immich-bucket:
+  gogiwnadh-services-immich-resources-backups:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/immich/bucket/cache
-  gogiwnadh-services-karakeep-ocr-cache:
+      device: :${GOGIWNADH_PATH_SERVICES}/immich/resources/backups
+
+  gogiwnadh-assets-karakeep:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/karakeep/cache
-  gogiwnadh-services-karakeep-search:
+      device: :${GOGIWNADH_PATH_ASSETS}/73.Documents/73.01.karakeep
+
+  gogiwnadh-services-paperless-backups:
     driver: local
     driver_opts:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/karakeep/search
-  gogiwnadh-services-paperless-ai:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/paperless/ai
-  gogiwnadh-services-paperless-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/paperless/data
-  gogiwnadh-services-paperless-export:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${GOGIWNADH_PATH_SERVICES}/paperless/export
+      device: :${GOGIWNADH_PATH_SERVICES}/paperless/backups
