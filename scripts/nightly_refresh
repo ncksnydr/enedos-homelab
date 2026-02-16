@@ -35,7 +35,7 @@ function _find_manager_node {
 }
 
 function _refresh_mam {
-  curl -c /home/herupa/mam.cookies -b ~/mam.cookies https://t.myanonamouse.net
+  curl -c $HOME/mam.cookies -b $HOME/mam.cookies https://t.myanonamouse.net
 }
 
 

@@ -2,15 +2,15 @@
 #   Aliases → Utils
 # --------------------------------------------------------------------------
 
-function mam-create-cookie {
-  curl -c ~/mam.cookies -b "mam_id=$1" https://t.myanonamouse.net
+function mam_create_cookie {
+  curl -c $HOME/mam.cookies -b "mam_id=$1" https://t.myanonamouse.net/json/dynamicSeedbox.php
 }
 
-function mam-refresh-cookie {
-  curl -c ~/mam.cookies -b ~/mam.cookies https://t.myanonamouse.net
+function mam_refresh_cookie {
+  curl -c $HOME/mam.cookies -b $HOME/mam.cookies https://t.myanonamouse.net/json/dynamicSeedbox.php
 }
 
-function get-ip {
+function get_ip {
   curl icanhazip.com
 }
 
@@ -19,6 +19,6 @@ function mkcd {
   cd $1
 }
 
-function reload-shell {
+function reload_shell {
   source ~/.zshrc
 }
