@@ -250,6 +250,39 @@ services:
         constraints:
           - node.labels.vpn == true
 
+  # ReadMeABook (https://github.com/kikootwo/readmeabook)
+  readmeabook:
+    image: ghcr.io/kikootwo/readmeabook:latest
+    environment:
+      PUID: ${NAS_PUID:-1000}
+      PGID: ${NAS_PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      PUBLIC_URL: ${READMEABOOK_URL:-http://localhost}
+    ports:
+      - 32815:3030
+    volumes:
+      - ${BASE_PATH:-.}/readmeabook/cache:/app/cache
+      - ${BASE_PATH:-.}/readmeabook/config:/app/config
+      - ${BASE_PATH:-.}/readmeabook/db:/var/lib/postgresql/data
+      - ${BASE_PATH:-.}/readmeabook/redis:/var/lib/redis
+      - cofbilion-mam:/downloads
+      - thinmbahad-audiobooks:/media
+    depends_on:
+      - transmission
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Read Me a Book
+        - homepage.instance.admin.description=Audiobook request management
+        - homepage.instance.public.group=Media
+        - homepage.instance.public.description=Request audiobooks
+        - homepage.instance.public.name=Audiobookshelf Requests
+        - homepage.icon=readarr.svg
+        - homepage.href=${READMEABOOK_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
   # Seasonarr (https://github.com/d3v1l1989/seasonarr)
   seasonarr:
     image: ghcr.io/d3v1l1989/seasonarr:latest
@@ -403,6 +436,12 @@ volumes:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${COFBILION_PATH}/blackhole
+  cofbilion-mam:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NAS_IP},${NAS_OPTIONS}
+      device: :${COFBILION_PATH}/private/myanonamouse/peers
 
   #   Thinmbahad
   # --------------------------------------------------------------------------
