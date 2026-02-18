@@ -197,58 +197,58 @@ services:
         constraints:
           - node.labels.vpn == true
 
-  # Readarr (https://github.com/pennydreadful/bookshelf)
-  readarr-audiobooks:
-    image: ghcr.io/pennydreadful/bookshelf:hardcover
-    environment:
-      PUID: ${NAS_PUID:-1000}
-      PGID: ${NAS_PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-    ports:
-      - 34809:8787
-    volumes:
-      - ${BASE_PATH:-.}/readarr/audiobooks/config:/config
-      - thinmbahad-audiobooks:/audiobooks
-      - cofbilion:/downloads
-    depends_on:
-      - transmission
-      - prowlarr
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Pímilor
-        - homepage.instance.admin.name=Readarr (Audiobooks)
-        - homepage.instance.admin.description=Audiobooks collection manager
-        - homepage.instance.admin.icon=readarr.svg
-        - homepage.instance.admin.href=${READARR_AUDIOBOOKS_URL:-http://localhost}
-      placement:
-        constraints:
-          - node.labels.vpn == true
+  # # Readarr (https://github.com/pennydreadful/bookshelf)
+  # readarr-audiobooks:
+  #   image: ghcr.io/pennydreadful/bookshelf:hardcover
+  #   environment:
+  #     PUID: ${NAS_PUID:-1000}
+  #     PGID: ${NAS_PGID:-1000}
+  #     TZ: ${TZ:-America/Los_Angeles}
+  #   ports:
+  #     - 34809:8787
+  #   volumes:
+  #     - ${BASE_PATH:-.}/readarr/audiobooks/config:/config
+  #     - thinmbahad-audiobooks:/audiobooks
+  #     - cofbilion:/downloads
+  #   depends_on:
+  #     - transmission
+  #     - prowlarr
+  #   deploy:
+  #     labels:
+  #       - homepage.instance.admin.group=Pímilor
+  #       - homepage.instance.admin.name=Readarr (Audiobooks)
+  #       - homepage.instance.admin.description=Audiobooks collection manager
+  #       - homepage.instance.admin.icon=readarr.svg
+  #       - homepage.instance.admin.href=${READARR_AUDIOBOOKS_URL:-http://localhost}
+  #     placement:
+  #       constraints:
+  #         - node.labels.vpn == true
 
-  readarr-ebooks:
-    image: ghcr.io/pennydreadful/bookshelf:hardcover
-    environment:
-      PUID: ${NAS_PUID:-1000}
-      PGID: ${NAS_PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-    ports:
-      - 34808:8787
-    volumes:
-      - ${BASE_PATH:-.}/readarr/ebooks/config:/config
-      - thinmbahad-ebooks:/books
-      - cofbilion:/downloads
-    depends_on:
-      - transmission
-      - prowlarr
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Pímilor
-        - homepage.instance.admin.name=Readarr (eBooks)
-        - homepage.instance.admin.description=eBook collection manager
-        - homepage.instance.admin.icon=readarr.svg
-        - homepage.instance.admin.href=${READARR_EBOOKS_URL:-http://localhost}
-      placement:
-        constraints:
-          - node.labels.vpn == true
+  # readarr-ebooks:
+  #   image: ghcr.io/pennydreadful/bookshelf:hardcover
+  #   environment:
+  #     PUID: ${NAS_PUID:-1000}
+  #     PGID: ${NAS_PGID:-1000}
+  #     TZ: ${TZ:-America/Los_Angeles}
+  #   ports:
+  #     - 34808:8787
+  #   volumes:
+  #     - ${BASE_PATH:-.}/readarr/ebooks/config:/config
+  #     - thinmbahad-ebooks:/books
+  #     - cofbilion:/downloads
+  #   depends_on:
+  #     - transmission
+  #     - prowlarr
+  #   deploy:
+  #     labels:
+  #       - homepage.instance.admin.group=Pímilor
+  #       - homepage.instance.admin.name=Readarr (eBooks)
+  #       - homepage.instance.admin.description=eBook collection manager
+  #       - homepage.instance.admin.icon=readarr.svg
+  #       - homepage.instance.admin.href=${READARR_EBOOKS_URL:-http://localhost}
+  #     placement:
+  #       constraints:
+  #         - node.labels.vpn == true
 
   # ReadMeABook (https://github.com/kikootwo/readmeabook)
   readmeabook:
@@ -265,7 +265,7 @@ services:
       - ${BASE_PATH:-.}/readmeabook/config:/app/config
       - ${BASE_PATH:-.}/readmeabook/db:/var/lib/postgresql/data
       - ${BASE_PATH:-.}/readmeabook/redis:/var/lib/redis
-      - cofbilion-mam:/downloads
+      - cofbilion:/downloads
       - thinmbahad-audiobooks:/media
     depends_on:
       - transmission
@@ -436,12 +436,6 @@ volumes:
       type: nfs
       o: addr=${NAS_IP},${NAS_OPTIONS}
       device: :${COFBILION_PATH}/blackhole
-  cofbilion-mam:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=${NAS_IP},${NAS_OPTIONS}
-      device: :${COFBILION_PATH}/private/myanonamouse/peers
 
   #   Thinmbahad
   # --------------------------------------------------------------------------
