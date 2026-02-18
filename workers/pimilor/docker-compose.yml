@@ -88,46 +88,6 @@ services:
         constraints:
           - node.labels.vpn == true
 
-  # Overseerr (https://docs.linuxserver.io/images/docker-overseerr)
-  overseerr:
-    image: lscr.io/linuxserver/overseerr:latest
-    environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      TZ: ${TZ:-America/Los_Angeles}
-      LOG_LEVEL: debug
-      OVERSEERR_API: filepath:/run/secrets/overseerr_api
-    logging:
-      options:
-        max-size: 10m
-    ports:
-      - 46392:5055
-    secrets:
-      - overseerr_api
-    volumes:
-      - ${BASE_PATH:-.}/overseerr:/config
-    depends_on:
-      - transmission
-      - sonarr
-      - radarr
-    deploy:
-      labels:
-        - homepage.instance.admin.group=Pímilor
-        - homepage.instance.admin.name=Overseerr
-        - homepage.instance.admin.description=Media request management
-        - homepage.instance.public.group=Media
-        - homepage.instance.public.description=Request TV shows and movies
-        - homepage.instance.public.name=Plex Requests
-        - homepage.icon=overseerr.svg
-        - homepage.href=${OVERSEERR_URL:-http://localhost}
-        - homepage.widget.type=overseerr
-        - homepage.widget.url=http://10.0.1.45:46392
-        - homepage.widget.key=${OVERSEERR_API}
-        - homepage.widget.fields=["approved", "available", "processing"]
-      placement:
-        constraints:
-          - node.labels.vpn == true
-
   # Prowlarr (https://github.com/linuxserver/docker-prowlarr)
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -197,59 +157,6 @@ services:
         constraints:
           - node.labels.vpn == true
 
-  # # Readarr (https://github.com/pennydreadful/bookshelf)
-  # readarr-audiobooks:
-  #   image: ghcr.io/pennydreadful/bookshelf:hardcover
-  #   environment:
-  #     PUID: ${NAS_PUID:-1000}
-  #     PGID: ${NAS_PGID:-1000}
-  #     TZ: ${TZ:-America/Los_Angeles}
-  #   ports:
-  #     - 34809:8787
-  #   volumes:
-  #     - ${BASE_PATH:-.}/readarr/audiobooks/config:/config
-  #     - thinmbahad-audiobooks:/audiobooks
-  #     - cofbilion:/downloads
-  #   depends_on:
-  #     - transmission
-  #     - prowlarr
-  #   deploy:
-  #     labels:
-  #       - homepage.instance.admin.group=Pímilor
-  #       - homepage.instance.admin.name=Readarr (Audiobooks)
-  #       - homepage.instance.admin.description=Audiobooks collection manager
-  #       - homepage.instance.admin.icon=readarr.svg
-  #       - homepage.instance.admin.href=${READARR_AUDIOBOOKS_URL:-http://localhost}
-  #     placement:
-  #       constraints:
-  #         - node.labels.vpn == true
-
-  # readarr-ebooks:
-  #   image: ghcr.io/pennydreadful/bookshelf:hardcover
-  #   environment:
-  #     PUID: ${NAS_PUID:-1000}
-  #     PGID: ${NAS_PGID:-1000}
-  #     TZ: ${TZ:-America/Los_Angeles}
-  #   ports:
-  #     - 34808:8787
-  #   volumes:
-  #     - ${BASE_PATH:-.}/readarr/ebooks/config:/config
-  #     - thinmbahad-ebooks:/books
-  #     - cofbilion:/downloads
-  #   depends_on:
-  #     - transmission
-  #     - prowlarr
-  #   deploy:
-  #     labels:
-  #       - homepage.instance.admin.group=Pímilor
-  #       - homepage.instance.admin.name=Readarr (eBooks)
-  #       - homepage.instance.admin.description=eBook collection manager
-  #       - homepage.instance.admin.icon=readarr.svg
-  #       - homepage.instance.admin.href=${READARR_EBOOKS_URL:-http://localhost}
-  #     placement:
-  #       constraints:
-  #         - node.labels.vpn == true
-
   # ReadMeABook (https://github.com/kikootwo/readmeabook)
   readmeabook:
     image: ghcr.io/kikootwo/readmeabook:latest
@@ -304,6 +211,53 @@ services:
         - homepage.instance.admin.description=Season pack helper for Sonarr
         - homepage.instance.admin.icon=seasonarr.svg
         - homepage.instance.admin.href=${SEASONARR_URL:-http://localhost}
+      placement:
+        constraints:
+          - node.labels.vpn == true
+
+  # Seerr (https://github.com/seerr-team/seerr)
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Los_Angeles}
+      LOG_LEVEL: debug
+      OVERSEERR_API: filepath:/run/secrets/overseerr_api
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
+    logging:
+      options:
+        max-size: 10m
+    ports:
+      - 46392:5055
+    secrets:
+      - overseerr_api
+    volumes:
+      - ${BASE_PATH:-.}/seerr:/app/config
+    depends_on:
+      - transmission
+      - sonarr
+      - radarr
+    deploy:
+      labels:
+        - homepage.instance.admin.group=Pímilor
+        - homepage.instance.admin.name=Seerr
+        - homepage.instance.admin.description=Media request management
+        - homepage.instance.public.group=Media
+        - homepage.instance.public.description=Request TV shows and movies
+        - homepage.instance.public.name=Plex Requests
+        - homepage.icon=seerr.svg
+        - homepage.href=${OVERSEERR_URL:-http://localhost}
+        - homepage.widget.type=overseerr
+        - homepage.widget.url=http://10.0.1.45:46392
+        - homepage.widget.key=${OVERSEERR_API}
+        - homepage.widget.fields=["approved", "available", "processing"]
       placement:
         constraints:
           - node.labels.vpn == true
